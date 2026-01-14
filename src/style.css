@@ -1,0 +1,84 @@
+:root {
+  --fond-brio: radial-gradient(
+    circle at top,
+    #6a0d6d,
+    #3b0a46 55%,
+    #18001f
+  );
+
+  --carte-bg: rgba(255, 255, 255, 0.08);
+  --carte-bordure: rgba(255, 255, 255, 0.18);
+
+  --texte-principal: #ffffff;
+  --texte-secondaire: rgba(255, 255, 255, 0.7);
+
+  --degrade-brio: linear-gradient(
+    90deg,
+    #ef4444,
+    #ec4899,
+    #a855f7
+  );
+
+  --rayon: 18px;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--fond-brio);
+  color: var(--texte-principal);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+/* CARTES */
+.carte {
+  background: var(--carte-bg);
+  border: 1px solid var(--carte-bordure);
+  border-radius: var(--rayon);
+  backdrop-filter: blur(14px);
+  padding: 24px;
+}
+
+/* INPUTS */
+.input-brio {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 14px;
+  color: white;
+  font-size: 16px;
+}
+
+.input-brio::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* BOUTONS */
+.bouton-principal {
+  background: var(--degrade-brio);
+  border: none;
+  border-radius: 16px;
+  padding: 14px;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bouton-principal:hover {
+  transform: scale(1.03);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+/* FIX DEFINITIF GRADIENT BRIO */
+html,
+body,
+#app {
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
