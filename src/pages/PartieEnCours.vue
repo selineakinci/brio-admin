@@ -34,21 +34,35 @@
           <!-- DONNÉES JOUEUR -->
           <div class="zone zone-identite">
             <div class="zone-titre">JOUEUR</div>
-            <div class="nom" :style="{ color: j.couleur }">{{ j.nom }}</div>
 
-            <div class="etat">
-              <span v-if="j.mort">☠️ Éliminé</span>
+            <!-- Nom joueur -->
+            <div class="nom" :style="{ color: j.couleur }">
+              {{ j.nom }}
+            </div>
 
-              <span v-else-if="j.vie <= 25" class="etat-danger">
-                ⚠️ EN DANGER DE MORT
-              </span>
+            <!-- ETAT CENTRAL GRAND FORMAT -->
+            <div class="etat-central">
 
-              <span v-else class="etat-vital">
-                <span class="pulse-dot"></span>
-                EN VIE
-              </span>
+              <!-- JOUEUR EN VIE -->
+              <template v-if="!j.mort && j.vie > 25">
+                <div class="etat-circle alive"></div>
+                <div class="etat-text alive">EN VIE</div>
+              </template>
+
+              <!-- JOUEUR EN DANGER -->
+              <template v-else-if="!j.mort && j.vie <= 25">
+                <div class="etat-circle danger"></div>
+                <div class="etat-text danger">DANGER</div>
+              </template>
+
+              <!-- JOUEUR MORT -->
+              <template v-else>
+                <div class="etat-text dead">ÉLIMINÉ</div>
+              </template>
+
             </div>
           </div>
+
 
           <!-- STATS -->
           <div class="zone zone-stats">
@@ -848,6 +862,74 @@ export default {
   max-height: 28vh;
   overflow-y: auto;
 }
+/* ===== ZONE JOUEUR — ETAT GRAND FORMAT ===== */
+
+.zone-identite {
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+}
+
+/* conteneur central */
+.etat-central {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+/* cercle d’état */
+.etat-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+/* EN VIE */
+.etat-circle.alive {
+  background: #22c55e;
+  box-shadow: 0 0 18px rgba(34,197,94,0.9);
+  animation: alive-pulse 1.4s infinite;
+}
+
+.etat-text.alive {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #22c55e;
+}
+
+/* DANGER */
+.etat-circle.danger {
+  background: #ef4444;
+  box-shadow: 0 0 18px rgba(239,68,68,0.9);
+  animation: danger-pulse 1.2s infinite;
+}
+
+.etat-text.danger {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #fecaca;
+}
+
+/* MORT */
+.etat-text.dead {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #fecaca;
+}
+
+/* animations */
+@keyframes alive-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 
 </style>
 
