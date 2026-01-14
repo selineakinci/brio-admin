@@ -63,25 +63,31 @@
             </div>
           </div>
 
-
-          <!-- STATS -->
+                    <!-- STATS -->
           <div class="zone zone-stats">
             <div class="zone-titre">STATISTIQUES</div>
 
+            <!-- ❤️ VIE -->
             <div class="stat">
               ❤️
               <div class="barre">
-                <div class="vie" :style="{ width: j.vie + '%' }"></div>
+                <div class="vie" :style="{ width: j.vie + '%' }">
+                  <span class="barre-text">{{ j.vie }}%</span>
+                </div>
               </div>
             </div>
 
+            <!-- 🛡️ BOUCLIER -->
             <div class="stat">
               🛡️
               <div class="barre">
-                <div class="bouclier" :style="{ width: j.bouclier + '%' }"></div>
+                <div class="bouclier" :style="{ width: j.bouclier + '%' }">
+                  <span class="barre-text">{{ j.bouclier }}%</span>
+                </div>
               </div>
             </div>
 
+            <!-- 🔫 MUNITIONS -->
             <div class="stat">
               🔫
               <div class="munitions">
@@ -96,6 +102,7 @@
               </span>
             </div>
           </div>
+
 
           <!-- ================= ACTIONS ADMIN ================= -->
           <div class="zone zone-actions">
@@ -301,6 +308,8 @@ export default {
 
     tuer(j) {
       j.mort = true;
+      j.vie = 0;          // sécurité visuelle/logique
+      j.bouclier = 0;     // 🔥 RESET DU BOUCLIER À LA MORT
       j.confirmKill = false;
 
       this.historique.unshift({
@@ -929,7 +938,23 @@ export default {
   50% { transform: scale(1.5); opacity: 0.4; }
   100% { transform: scale(1); opacity: 1; }
 }
+/* ===== TEXTE DANS LES BARRES (HUD JEU) ===== */
+.barre {
+  position: relative;
+}
 
+.barre-text {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 6px rgba(0,0,0,0.9);
+  pointer-events: none;
+  user-select: none;
+}
 
 </style>
 
