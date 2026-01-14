@@ -186,7 +186,7 @@
 
       <!-- COMMS -->
       <div class="hud-carte chat">
-        <div class="hud-titre">COMMS JOUEURS</div>
+        <div class="hud-titre">CHAT</div>
 
         <div class="chat-messages">
           <div v-for="(m,i) in messages" :key="i">
@@ -788,11 +788,7 @@ export default {
 .chat-input {
   flex-shrink: 0;
 }
-/* ===== HUD DROIT STRUCTURE ===== */
-.hud-droite {
-  position: relative;
-  height: 100%;
-}
+
 
 /* ===== CHAT EN BAS À DROITE ===== */
 .hud-carte.chat {
@@ -803,9 +799,54 @@ export default {
   max-height: 40vh;
   min-height: 120px;
 }
-/* ===== HISTORIQUE AU-DESSUS ===== */
+/* ========================================================= */
+/* ===== HUD FIXE TYPE JEU (HISTORIQUE + CHAT) ============== */
+/* ========================================================= */
+
+/* Conteneur HUD retiré du flow */
+.hud-droite {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: 22%;
+  height: calc(100vh - 48px);
+  pointer-events: none; /* évite de bloquer le scroll */
+}
+
+/* Les cartes restent interactives */
+.hud-carte {
+  pointer-events: auto;
+}
+
+/* ===== HISTORIQUE FIXE EN HAUT ===== */
 .hud-carte:not(.chat) {
-  margin-bottom: calc(40vh + 16px);
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  max-height: 45vh;
+}
+
+/* feed scrollable */
+.hud-carte:not(.chat) .feed {
+  max-height: 35vh;
+  overflow-y: auto;
+}
+
+/* ===== CHAT FIXE EN BAS ===== */
+.hud-carte.chat {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  max-height: 40vh;
+  min-height: 140px;
+}
+
+/* messages scroll */
+.chat-messages {
+  max-height: 28vh;
+  overflow-y: auto;
 }
 
 </style>
