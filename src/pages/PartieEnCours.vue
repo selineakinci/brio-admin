@@ -804,11 +804,6 @@ export default {
   min-height: 120px;
 }
 
-/* ===== HISTORIQUE AU-DESSUS ===== */
-.hud-carte:not(.chat) {
-  margin-bottom: calc(40vh + 16px);
-}
-
 
 </style>
 
