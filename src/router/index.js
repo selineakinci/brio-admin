@@ -1,46 +1,75 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from "vue-router";
 
 // Pages
-import ConnexionAdmin from '../pages/ConnexionAdmin.vue'
-import ListeParties from '../pages/ListeParties.vue'
-import CreationPartie from '../pages/CreationPartie.vue'
-import FileAttentePartie from '../pages/FileAttentePartie.vue'
-import PartieEnCours from '../pages/PartieEnCours.vue'
+import ConnexionAdmin from "../pages/ConnexionAdmin.vue";
+import ListeParties from "../pages/ListeParties.vue";
+import CreationPartie from "../pages/CreationPartie.vue";
+import FileAttentePartie from "../pages/FileAttentePartie.vue";
+import PartieEnCours from "../pages/PartieEnCours.vue";
+// import Scores from "../pages/Scores.vue"; // plus tard
+
+// Layout
+import AdminLayout from "../layouts/AdminLayout.vue";
 
 /**
- * Définition des routes de l'application
+ * Définition des routes
  */
 const routes = [
+  /* =========================
+     PAGE DE CONNEXION (SANS LAYOUT)
+     ========================= */
   {
-    path: '/',
-    name: 'ConnexionAdmin',
+    path: "/",
+    name: "ConnexionAdmin",
     component: ConnexionAdmin,
   },
+
+  /* =========================
+     DASHBOARD ADMIN (AVEC LAYOUT)
+     ========================= */
   {
-    path: '/parties',
-    name: 'ListeParties',
-    component: ListeParties,
+    path: "/",
+    component: AdminLayout,
     meta: { necessiteAdmin: true },
+    children: [
+      {
+        path: "parties",
+        name: "ListeParties",
+        component: ListeParties,
+      },
+
+      {
+        path: "creer-partie",
+        name: "CreationPartie",
+        component: CreationPartie,
+      },
+
+      {
+        /* 🔥 CODE DE PARTIE DANS L’URL */
+        path: "file-attente/:code",
+        name: "FileAttentePartie",
+        component: FileAttentePartie,
+        props: true,
+      },
+
+      {
+        /* 🔥 CODE DE PARTIE DANS L’URL */
+        path: "partie-en-cours/:code",
+        name: "PartieEnCours",
+        component: PartieEnCours,
+        props: true,
+      },
+
+      // 🔮 future page scores
+      // {
+      //   path: "scores/:code",
+      //   name: "Scores",
+      //   component: Scores,
+      //   props: true,
+      // },
+    ],
   },
-  {
-    path: '/creer-partie',
-    name: 'CreationPartie',
-    component: CreationPartie,
-    meta: { necessiteAdmin: true },
-  },
-  {
-    path: '/file-attente',
-    name: 'FileAttentePartie',
-    component: FileAttentePartie,
-    meta: { necessiteAdmin: true },
-  },
-  {
-    path: '/partie-en-cours',
-    name: 'PartieEnCours',
-    component: PartieEnCours,
-    meta: { necessiteAdmin: true },
-  },
-]
+];
 
 /**
  * Création du routeur
@@ -48,21 +77,20 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-})
+});
 
 /**
  * 🔐 Garde de navigation :
- * - Empêche l'accès aux pages admin si l'utilisateur n'est pas connecté
+ * - bloque les pages admin si non connecté
  */
 router.beforeEach((to, from, next) => {
-  const estAdmin = localStorage.getItem('isAdmin') === 'true'
+  const estAdmin = localStorage.getItem("isAdmin") === "true";
 
   if (to.meta.necessiteAdmin && !estAdmin) {
-    // Redirection vers la page de connexion
-    next('/')
+    next("/");
   } else {
-    next()
+    next();
   }
-})
+});
 
-export default router
+export default router;

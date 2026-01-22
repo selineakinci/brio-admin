@@ -7,6 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
+        // target: 'http://macbook-pro-de-mathis.local:8000',
         target: 'http://localhost:8000',
         changeOrigin: true,
       }

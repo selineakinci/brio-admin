@@ -8,6 +8,7 @@
       <div class="bloc">
         <div class="titre-bloc">Nom de la partie</div>
         <input
+          class="input-brio"
           type="text"
           placeholder="Ex : BRIO – Night Battle"
           v-model="nom"
@@ -18,23 +19,20 @@
       <div class="bloc">
         <div class="titre-bloc">Durée de la partie</div>
 
-        <div class="duree">
-          <div class="curseur">
-            <span>Heures</span>
-            <input type="range" min="0" max="12" v-model.number="heures" />
-            <strong>{{ heures }} h</strong>
+        <div class="duree-box">
+          <input
+            type="range"
+            min="1"
+            max="120"
+            v-model.number="minutes"
+          />
+
+          <div class="duree-affichage">
+            {{ formatDuree(minutes) }}
           </div>
 
-          <div class="curseur">
-            <span>Minutes</span>
-            <input type="range" min="0" max="59" v-model.number="minutes" />
-            <strong>{{ minutes }} min</strong>
-          </div>
-
-          <div class="curseur">
-            <span>Secondes</span>
-            <input type="range" min="0" max="59" v-model.number="secondes" />
-            <strong>{{ secondes }} s</strong>
+          <div class="duree-hint">
+            Durée comprise entre 1 et 120 minutes
           </div>
         </div>
       </div>
@@ -52,7 +50,7 @@
 
       <!-- BOUTON -->
       <button
-        class="bouton-creer"
+        class="bouton-principal bouton-creer"
         :disabled="chargement"
         @click="creerPartie"
       >
@@ -63,6 +61,7 @@
   </div>
 </template>
 
+
 <script>
 import axios from "axios";
 
@@ -72,9 +71,7 @@ export default {
   data() {
     return {
       nom: "",
-      heures: 0,
-      minutes: 0,
-      secondes: 0,
+      minutes: 30,   // valeur par défaut propre
       joueurs: 2,
       chargement: false,
     };
@@ -89,14 +86,19 @@ export default {
       if (this.joueurs > 2) this.joueurs--;
     },
 
-    async creerPartie() {
-      const duration_seconds =
-        this.heures * 3600 +
-        this.minutes * 60 +
-        this.secondes;
+    formatDuree(min) {
+      const h = Math.floor(min / 60);
+      const m = min % 60;
 
-      if (!this.nom || this.joueurs < 2 || duration_seconds < 60) {
-        alert("Veuillez renseigner un nom, au moins 2 joueurs et une durée ≥ 1 min");
+      if (h === 0) return `${m} min`;
+      return `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`;
+    },
+
+    async creerPartie() {
+      const duration_seconds = this.minutes * 60;
+
+      if (!this.nom || this.joueurs < 2) {
+        alert("Veuillez renseigner un nom et au moins 2 joueurs");
         return;
       }
 
@@ -109,10 +111,10 @@ export default {
           duration_seconds,
         });
 
-        // Retour à la liste
+        // Retour à la liste des parties
         this.$router.push("/parties");
       } catch (error) {
-        console.error(error);
+        console.error("Erreur backend :", error.response?.data);
         alert("Erreur lors de la création de la partie");
       } finally {
         this.chargement = false;
@@ -122,59 +124,53 @@ export default {
 };
 </script>
 
-<style>
+
+
+
+<style scoped>
 .page-creer-partie {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 60px;
+  padding-top: 80px;
 }
 
 .carte-creer {
   width: 520px;
-  padding: 32px;
+  padding: 36px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 32px;
 }
 
 h1 {
   text-align: center;
+  font-size: 26px;
+  font-weight: 800;
 }
+
+/* BLOCS */
 
 .bloc {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .titre-bloc {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   opacity: 0.85;
 }
 
-input[type="text"] {
-  height: 44px;
-  border-radius: 12px;
-  border: none;
-  padding: 0 14px;
-  font-size: 16px;
-}
+/* DURÉE */
 
-.duree {
+.duree-box {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.curseur {
-  display: grid;
-  grid-template-columns: 80px 1fr 60px;
-  align-items: center;
   gap: 12px;
 }
 
@@ -182,39 +178,57 @@ input[type="range"] {
   accent-color: #ec4899;
 }
 
+.duree-affichage {
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  background: var(--degrade-brio);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.duree-hint {
+  font-size: 12px;
+  text-align: center;
+  opacity: 0.65;
+}
+
+/* JOUEURS */
+
 .joueurs {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 22px;
 }
 
 .joueurs button {
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   border: none;
   font-size: 24px;
   background: var(--degrade-brio);
   color: white;
   cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.joueurs button:hover {
+  transform: scale(1.08);
 }
 
 .joueurs span {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: bold;
 }
 
+/* BOUTON */
+
 .bouton-creer {
-  margin-top: 20px;
-  height: 48px;
-  border-radius: 16px;
-  border: none;
-  background: var(--degrade-brio);
-  color: white;
+  margin-top: 10px;
+  height: 52px;
   font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
 }
 
 .bouton-creer:disabled {

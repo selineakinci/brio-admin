@@ -17,25 +17,24 @@
           :key="joueur.id"
           class="carte carte-joueur"
         >
-          <!-- Identité -->
+          <!-- IDENTITÉ -->
           <div class="identite">
             <div class="avatar">
-              {{ joueur.nom.charAt(0) }}
+              {{ joueur.pseudo.charAt(0).toUpperCase() }}
             </div>
-            <span class="nom-joueur">{{ joueur.nom }}</span>
+            <span class="nom-joueur">{{ joueur.pseudo }}</span>
           </div>
 
           <!-- ÉQUIPEMENTS -->
           <div class="equipements">
-            <span class="equipement" :class="{ ok: joueur.arme }">🔫</span>
-            <span class="equipement" :class="{ ok: joueur.gilet }">🦺</span>
+            <span class="equipement" :class="{ ok: joueur.pret }">🔫</span>
+            <span class="equipement" :class="{ ok: joueur.pret }">🦺</span>
           </div>
 
-          <!-- STATUT (CLIC ADMIN) -->
+          <!-- STATUT -->
           <div
             class="statut"
             :class="joueur.pret ? 'pret' : 'attente'"
-            @click="togglePret(joueur)"
           >
             {{ joueur.pret ? 'Prêt' : 'En attente' }}
           </div>
@@ -55,28 +54,29 @@
   </div>
 </template>
 
+
+
 <script>
+import axios from "axios";
+
 export default {
   name: "FileAttentePartie",
 
   data() {
     return {
       partie: {
-        nom: "BRIO – Night Battle",
+        nom: "File d’attente",
       },
-
-      joueurs: [
-        { id: 1, nom: "Mathis",  arme: true,  gilet: true,  pret: true  },
-        { id: 2, nom: "Matteo",  arme: true,  gilet: false, pret: false },
-        { id: 3, nom: "Charles", arme: true,  gilet: true,  pret: true  },
-        { id: 4, nom: "Séline",  arme: false, gilet: true,  pret: false },
-        { id: 5, nom: "Julie",   arme: true,  gilet: true,  pret: true  },
-        { id: 6, nom: "Adrien",  arme: true,  gilet: true,  pret: false },
-      ],
+      joueurs: [],
+      pollingId: null,
     };
   },
 
   computed: {
+    codePartie() {
+      return this.$route.params.code;
+    },
+
     joueursPrets() {
       return this.joueurs.filter(j => j.pret).length;
     },
@@ -84,21 +84,97 @@ export default {
     tousPrets() {
       return this.joueurs.length > 0 &&
              this.joueurs.every(j => j.pret);
+    },
+  },
+
+  mounted() {
+    if (!this.codePartie) {
+      console.error("❌ Code de partie manquant");
+      return;
+    }
+
+    // 1️⃣ Chargement initial COMPLET
+    this.chargerJoueurs();
+
+    // 2️⃣ Polling léger uniquement sur l'état prêt
+    this.pollingId = setInterval(() => {
+      this.pollingEtatEquipements();
+    }, 2000);
+  },
+
+  beforeUnmount() {
+    if (this.pollingId) {
+      clearInterval(this.pollingId);
+      this.pollingId = null;
     }
   },
 
   methods: {
-    togglePret(joueur) {
-      joueur.pret = !joueur.pret;
+    /* =========================
+       CHARGEMENT INITIAL
+       ========================= */
+    async chargerJoueurs() {
+      try {
+        const response = await axios.get(
+          `/api/games/${this.codePartie}/players/`
+        );
+
+        this.joueurs = response.data.map(player => ({
+          id: player.id,
+          pseudo: player.pseudo,
+          pret: player.equipment_id !== null,
+        }));
+      } catch (error) {
+        console.error(
+          "Erreur chargement joueurs :",
+          error.response?.data || error
+        );
+      }
+    },
+
+    /* =========================
+       POLLING OPTIMISÉ
+       ========================= */
+    async pollingEtatEquipements() {
+      try {
+        const response = await axios.get(
+          `/api/games/${this.codePartie}/players/`
+        );
+
+        const backendPlayers = response.data;
+
+        // 🔥 Mise à jour UNIQUEMENT du champ `pret`
+        backendPlayers.forEach(bp => {
+          const localPlayer = this.joueurs.find(j => j.id === bp.id);
+
+          if (localPlayer) {
+            const nouveauPret = bp.equipment_id !== null;
+
+            if (localPlayer.pret !== nouveauPret) {
+              localPlayer.pret = nouveauPret;
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Erreur polling équipements :", error);
+      }
     },
 
     lancerPartie() {
       if (!this.tousPrets) return;
-      this.$router.push({ name: "PartieEnCours" });
-    }
-  }
+
+      // 🔮 futur endpoint backend
+      // await axios.post(`/api/games/${this.codePartie}/start/`);
+
+      this.$router.push({
+        name: "PartieEnCours",
+        params: { code: this.codePartie },
+      });
+    },
+  },
 };
 </script>
+
 
 <style>
 .page-file-attente {
@@ -108,7 +184,6 @@ export default {
   padding-top: 50px;
 }
 
-/* Carte principale */
 .carte-attente {
   width: 720px;
   display: flex;
@@ -116,7 +191,6 @@ export default {
   gap: 28px;
 }
 
-/* En-tête */
 .entete {
   display: flex;
   justify-content: space-between;
@@ -128,14 +202,12 @@ export default {
   font-weight: bold;
 }
 
-/* Liste joueurs */
 .liste-joueurs {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-/* Carte joueur */
 .carte-joueur {
   display: grid;
   grid-template-columns: 1.4fr 1fr auto;
@@ -143,7 +215,6 @@ export default {
   padding: 16px;
 }
 
-/* Identité */
 .identite {
   display: flex;
   align-items: center;
@@ -166,7 +237,6 @@ export default {
   font-weight: bold;
 }
 
-/* Équipements */
 .equipements {
   display: flex;
   gap: 14px;
@@ -175,19 +245,18 @@ export default {
 
 .equipement {
   opacity: 0.25;
+  transition: opacity 0.2s ease;
 }
 
 .equipement.ok {
   opacity: 1;
 }
 
-/* Statut */
 .statut {
   padding: 6px 16px;
   border-radius: 20px;
   font-weight: bold;
   font-size: 14px;
-  cursor: pointer;
   user-select: none;
 }
 
@@ -199,7 +268,6 @@ export default {
   background-color: #f59e0b;
 }
 
-/* Bouton lancer */
 .bouton-lancer {
   margin-top: 10px;
   height: 48px;
@@ -210,12 +278,6 @@ export default {
   font-size: 18px;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.bouton-lancer:hover:not(:disabled) {
-  transform: scale(1.03);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .bouton-lancer:disabled {
