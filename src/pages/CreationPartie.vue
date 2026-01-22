@@ -4,9 +4,9 @@
 
       <h1>Créer une partie</h1>
 
-      <!-- NOM DE LA PARTIE -->
+      <!-- NOM -->
       <div class="bloc">
-        <label>Nom de la partie</label>
+        <div class="titre-bloc">Nom de la partie</div>
         <input
           type="text"
           placeholder="Ex : BRIO – Night Battle"
@@ -16,24 +16,24 @@
 
       <!-- DURÉE -->
       <div class="bloc">
-        <label>Durée de la partie</label>
+        <div class="titre-bloc">Durée de la partie</div>
 
         <div class="duree">
           <div class="curseur">
             <span>Heures</span>
-            <input type="range" min="0" max="12" v-model="heures" />
+            <input type="range" min="0" max="12" v-model.number="heures" />
             <strong>{{ heures }} h</strong>
           </div>
 
           <div class="curseur">
             <span>Minutes</span>
-            <input type="range" min="0" max="59" v-model="minutes" />
+            <input type="range" min="0" max="59" v-model.number="minutes" />
             <strong>{{ minutes }} min</strong>
           </div>
 
           <div class="curseur">
             <span>Secondes</span>
-            <input type="range" min="0" max="59" v-model="secondes" />
+            <input type="range" min="0" max="59" v-model.number="secondes" />
             <strong>{{ secondes }} s</strong>
           </div>
         </div>
@@ -41,7 +41,7 @@
 
       <!-- JOUEURS -->
       <div class="bloc">
-        <label>Nombre de joueurs</label>
+        <div class="titre-bloc">Nombre de joueurs</div>
 
         <div class="joueurs">
           <button @click="retirerJoueur">−</button>
@@ -50,37 +50,73 @@
         </div>
       </div>
 
-    <!-- BOUTON -->
-    <button
-    class="bouton-creer"
-    @click="$router.push('/file-attente')"
-    >
-    Créer cette partie
-    </button>
-
+      <!-- BOUTON -->
+      <button
+        class="bouton-creer"
+        :disabled="chargement"
+        @click="creerPartie"
+      >
+        {{ chargement ? "Création..." : "Créer cette partie" }}
+      </button>
 
     </div>
   </div>
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
-  name: "CreerPartie",
+  name: "CreationPartie",
+
   data() {
     return {
       nom: "",
       heures: 0,
-      minutes: 15,
+      minutes: 0,
       secondes: 0,
-      joueurs: 8,
+      joueurs: 2,
+      chargement: false,
     };
   },
+
   methods: {
     ajouterJoueur() {
-      if (this.joueurs < 32) this.joueurs++;
+      if (this.joueurs < 100) this.joueurs++;
     },
+
     retirerJoueur() {
       if (this.joueurs > 2) this.joueurs--;
+    },
+
+    async creerPartie() {
+      const duration_seconds =
+        this.heures * 3600 +
+        this.minutes * 60 +
+        this.secondes;
+
+      if (!this.nom || this.joueurs < 2 || duration_seconds < 60) {
+        alert("Veuillez renseigner un nom, au moins 2 joueurs et une durée ≥ 1 min");
+        return;
+      }
+
+      this.chargement = true;
+
+      try {
+        await axios.post("/api/games/", {
+          name: this.nom,
+          max_players: this.joueurs,
+          duration_seconds,
+        });
+
+        // Retour à la liste
+        this.$router.push("/parties");
+      } catch (error) {
+        console.error(error);
+        alert("Erreur lors de la création de la partie");
+      } finally {
+        this.chargement = false;
+      }
     },
   },
 };
@@ -95,7 +131,6 @@ export default {
   padding-top: 60px;
 }
 
-/* Carte principale */
 .carte-creer {
   width: 520px;
   padding: 32px;
@@ -106,22 +141,22 @@ export default {
 
 h1 {
   text-align: center;
-  margin-bottom: 10px;
 }
 
-/* Blocs */
 .bloc {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-label {
-  font-weight: bold;
-  opacity: 0.9;
+.titre-bloc {
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
 }
 
-/* Input texte */
 input[type="text"] {
   height: 44px;
   border-radius: 12px;
@@ -130,7 +165,6 @@ input[type="text"] {
   font-size: 16px;
 }
 
-/* DURÉE */
 .duree {
   display: flex;
   flex-direction: column;
@@ -148,7 +182,6 @@ input[type="range"] {
   accent-color: #ec4899;
 }
 
-/* JOUEURS */
 .joueurs {
   display: flex;
   justify-content: center;
@@ -172,7 +205,6 @@ input[type="range"] {
   font-weight: bold;
 }
 
-/* Bouton créer */
 .bouton-creer {
   margin-top: 20px;
   height: 48px;
@@ -183,5 +215,10 @@ input[type="range"] {
   font-size: 18px;
   font-weight: bold;
   cursor: pointer;
+}
+
+.bouton-creer:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

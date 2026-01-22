@@ -1,56 +1,44 @@
 <template>
   <div class="page-parties">
     <!-- Créer une partie -->
-    <div class="creer-partie" @click="$router.push('/creer-partie')">
+    <div
+      class="creer-partie"
+      @click="$router.push('/creer-partie')"
+    >
       <div class="bouton-plus"></div>
       <span>Créer une partie</span>
     </div>
 
-    <!-- Liste -->
+    <!-- Liste des parties -->
     <div class="liste-parties">
       <div
         class="carte carte-partie"
         v-for="partie in parties"
         :key="partie.id"
       >
-        <!-- Statut -->
+        <!-- Statut (BACKEND DRIVEN) -->
         <div
           class="statut"
-          :class="partie.statut === 'en_cours' ? 'en-cours' : 'terminee'"
+          :class="statusClass(partie.status)"
         >
-          {{ partie.statut === 'en_cours'
-            ? 'Partie en cours'
-            : 'Partie terminée' }}
+          {{ statusLabel(partie.status) }}
         </div>
 
-        <!-- Nom de la partie -->
+        <!-- Nom -->
         <div class="nom-partie">
           {{ partie.nom }}
         </div>
 
         <!-- Infos -->
         <div class="infos">
-          <template v-if="partie.statut === 'en_cours'">
-            <div>
-              <strong>Joueurs</strong> : {{ partie.joueurs }}
-            </div>
-            <div>
-              <strong>Temps</strong> :
-              <time :datetime="partie.tempsISO">
-                {{ partie.temps }}
-              </time>
-            </div>
-          </template>
+          <div><strong>Code</strong> : {{ partie.code }}</div>
+          <div><strong>Joueurs</strong> : {{ partie.max_players }}</div>
+          <div><strong>Temps restant</strong> : {{ partie.temps_restant }}</div>
 
-          <template v-else>
-            <div><strong>Gagnant</strong> : {{ partie.gagnant }}</div>
-            <div>
-              <strong>Date</strong> :
-              <time :datetime="partie.dateISO">
-                {{ partie.date }}
-              </time>
-            </div>
-          </template>
+          <!-- QR CODE -->
+          <div class="qr">
+            <img :src="partie.qrCode" alt="QR Code" />
+          </div>
         </div>
       </div>
     </div>
@@ -58,41 +46,95 @@
 </template>
 
 <script>
+import QRCode from "qrcode";
+
 export default {
   name: "ListeParties",
+
   data() {
     return {
-      parties: [
-        {
-          id: 1,
-          nom: "Alpha",
-          statut: "en_cours",
-          joueurs: 8,
-          temps: "12:34",
-          tempsISO: "PT12M34S",
-        },
-        {
-          id: 2,
-          nom: "Omega",
-          statut: "terminee",
-          gagnant: "Mathis",
-          date: "12/01/2026",
-          dateISO: "2026-01-12",
-        },
-      ],
+      parties: [],
     };
+  },
+
+  mounted() {
+    this.chargerParties();
+  },
+
+  methods: {
+    async chargerParties() {
+      try {
+        const response = await fetch("/api/games/");
+        const games = await response.json();
+
+        this.parties = await Promise.all(
+          games.map(async game => {
+            const qrCode = await QRCode.toDataURL(game.code, {
+              width: 140,
+              margin: 1,
+            });
+
+            return {
+              id: game.id,
+              nom: game.name,
+              code: game.code,
+              max_players: game.max_players,
+              status: game.status, // waiting | running | paused | finished
+              duration_seconds: game.duration_seconds,
+              temps_restant: this.formatTemps(game.duration_seconds),
+              qrCode,
+            };
+          })
+        );
+      } catch (error) {
+        console.error("Erreur chargement parties :", error);
+      }
+    },
+
+    formatTemps(secondes) {
+      const h = Math.floor(secondes / 3600);
+      const m = Math.floor((secondes % 3600) / 60);
+      const s = Math.floor(secondes % 60);
+
+      return (
+        `${String(h).padStart(2, "0")}:` +
+        `${String(m).padStart(2, "0")}:` +
+        `${String(s).padStart(2, "0")}`
+      );
+    },
+
+    statusLabel(status) {
+      return {
+        waiting: "En attente",
+        running: "Partie en cours",
+        paused: "En pause",
+        finished: "Partie terminée",
+      }[status] || status;
+    },
+
+    statusClass(status) {
+      return {
+        waiting: "attente",
+        running: "en-cours",
+        paused: "pause",
+        finished: "terminee",
+      }[status];
+    },
   },
 };
 </script>
 
+
+
+
 <style>
 .page-parties {
   min-height: 100vh;
-  background: transparent;
   padding: 40px;
 }
 
-/* Bouton créer */
+/* ===== Bouton créer ===== */
+
 .creer-partie {
   display: flex;
   align-items: center;
@@ -100,11 +142,46 @@ export default {
   margin-bottom: 32px;
   cursor: pointer;
   font-size: 18px;
+  font-weight: bold;
+  color: white;
 }
-/* ===== INTERACTION CARTES PARTIES ===== */
+
+.bouton-plus {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--degrade-brio);
+  position: relative;
+}
+
+.bouton-plus::after {
+  content: "+";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  font-size: 28px;
+  font-weight: bold;
+  color: white;
+}
+
+/* ===== Liste ===== */
+
+.liste-parties {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== Carte ===== */
 
 .carte-partie {
-  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 24px;
+  padding: 20px;
+  border-radius: 20px;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -113,22 +190,8 @@ export default {
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
 }
 
-/* Liste */
-.liste-parties {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+/* ===== Statuts ===== */
 
-/* Carte */
-.carte-partie {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  column-gap: 24px;
-}
-
-/* Statut */
 .statut {
   min-width: 160px;
   height: 42px;
@@ -139,75 +202,43 @@ export default {
   font-weight: bold;
 }
 
+.attente {
+  background-color: #facc15;
+}
+
 .en-cours {
   background-color: #22c55e;
+}
+
+.pause {
+  background-color: #fb923c;
 }
 
 .terminee {
   background-color: #ef4444;
 }
 
-/* Nom */
+/* ===== Texte ===== */
+
 .nom-partie {
   font-size: 20px;
   font-weight: bold;
   text-align: center;
 }
 
-/* Infos */
 .infos {
   text-align: right;
   font-size: 15px;
-  color: var(--texte-secondaire);
 }
 
-.infos div {
-  margin: 2px 0;
-}
-/* ===== BOUTON CRÉER UNE PARTIE ===== */
+/* ===== QR ===== */
 
-.creer-partie {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 32px;
-  cursor: pointer;
-  font-size: 18px;
-  font-weight: bold;
-  color: white;
+.qr img {
+  width: 140px;
+  height: 140px;
+  background: white;
+  padding: 8px;
+  border-radius: 12px;
+  margin-top: 8px;
 }
-
-.creer-partie span {
-  opacity: 0.9;
-}
-
-/* Rond + */
-.bouton-plus {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--degrade-brio);
-  position: relative;
-  flex-shrink: 0;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-}
-
-/* + centré optiquement */
-.bouton-plus::after {
-  content: "+";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -60%); /* centrage optique validé */
-  font-size: 28px;
-  font-weight: bold;
-  color: white;
-  line-height: 1;
-}
-
-/* Hover */
-.creer-partie:hover .bouton-plus {
-  transform: scale(1.08);
-}
-
 </style>

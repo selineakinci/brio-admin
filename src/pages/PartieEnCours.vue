@@ -63,46 +63,50 @@
             </div>
           </div>
 
-                    <!-- STATS -->
+          <!-- STATS -->
           <div class="zone zone-stats">
             <div class="zone-titre">STATISTIQUES</div>
 
-            <!-- ❤️ VIE -->
-            <div class="stat">
-              ❤️
-              <div class="barre">
-                <div class="vie" :style="{ width: j.vie + '%' }">
-                  <span class="barre-text">{{ j.vie }}%</span>
+            <!-- contenu centré -->
+            <div class="stats-centered">
+              
+              <!-- ❤️ VIE -->
+              <div class="stat-block">
+                <div class="stat-icon">❤️</div>
+                <div class="barre big">
+                  <div class="vie" :style="{ width: j.vie + '%' }"></div>
+                  <span class="barre-text center">{{ j.vie }}%</span>
                 </div>
               </div>
-            </div>
 
-            <!-- 🛡️ BOUCLIER -->
-            <div class="stat">
-              🛡️
-              <div class="barre">
-                <div class="bouclier" :style="{ width: j.bouclier + '%' }">
-                  <span class="barre-text">{{ j.bouclier }}%</span>
+              <!-- 🛡️ BOUCLIER -->
+              <div class="stat-block">
+                <div class="stat-icon">🛡️</div>
+                <div class="barre big">
+                  <div class="bouclier" :style="{ width: j.bouclier + '%' }"></div>
+                  <span class="barre-text center">{{ j.bouclier }}%</span>
                 </div>
               </div>
-            </div>
 
-            <!-- 🔫 MUNITIONS -->
-            <div class="stat">
-              🔫
-              <div class="munitions">
-                <span
-                  v-for="n in j.munitionsMax"
-                  :key="n"
-                  :class="{ active: n <= j.munitions }"
-                />
+              <!-- 🔫 MUNITIONS -->
+              <div class="stat-block munitions-block">
+                <div class="weapon-icon">🔫</div>
+
+                <div class="ammo-capsules">
+                  <span
+                    v-for="n in j.munitionsMax"
+                    :key="n"
+                    :class="{ active: n <= j.munitions }"
+                  ></span>
+                </div>
+
+                <div class="ammo-count">
+                  {{ j.munitions }} / {{ j.munitionsMax }}
+                </div>
               </div>
-              <span class="compteur">
-                {{ j.munitions }}/{{ j.munitionsMax }}
-              </span>
+
             </div>
           </div>
-
 
           <!-- ================= ACTIONS ADMIN ================= -->
           <div class="zone zone-actions">
@@ -442,17 +446,25 @@ export default {
   flex-direction:column;
 }
 .zone-titre {
-  font-size:11px;
-  opacity:0.6;
-  margin-bottom:6px;
+  font-size: 11px;
+  opacity: 0.65;
+  letter-spacing: 2px;
+
+  text-align: center;      
+  align-self: center;      
+  width: 100%;             
+
+  margin-bottom: 8px;
 }
 
 /* ===== SCORE ===== */
 .zone-score {
-  display:flex;
-  justify-content:center;
-  align-items:center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
 }
+
 .zone-score .kills {
   font-size:22px;
   font-weight:bold;
@@ -954,6 +966,86 @@ export default {
   text-shadow: 0 0 6px rgba(0,0,0,0.9);
   pointer-events: none;
   user-select: none;
+}
+/* ===== STATS CENTRÉES – MODE JEU ===== */
+.stats-centered {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.zone-stats {
+  justify-content: flex-start;
+}
+
+/* bloc générique */
+.stat-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* icônes */
+.stat-icon {
+  font-size: 20px;
+  opacity: 0.85;
+}
+
+/* barres larges */
+.barre.big {
+  width: 100%;
+  height: 14px;
+  border-radius: 10px;
+}
+
+/* texte centré dans la barre */
+.barre-text.center {
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+/* ===== MUNITIONS – DESIGN INNOVANT ===== */
+.munitions-block {
+  margin-top: 6px;
+}
+
+.weapon-icon {
+  font-size: 26px;
+  text-shadow: 0 0 10px rgba(250,204,21,0.6);
+}
+
+/* capsules */
+.ammo-capsules {
+  display: flex;
+  gap: 4px;
+}
+
+.ammo-capsules span {
+  width: 8px;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.15);
+  box-shadow: inset 0 0 4px rgba(0,0,0,0.8);
+}
+
+.ammo-capsules span.active {
+  background: linear-gradient(180deg,#facc15,#eab308);
+  box-shadow: 0 0 6px rgba(250,204,21,0.8);
+}
+
+/* compteur */
+.ammo-count {
+  font-size: 12px;
+  letter-spacing: 1px;
+  opacity: 0.8;
 }
 
 </style>
