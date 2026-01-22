@@ -10,6 +10,12 @@
         </span>
       </div>
 
+      <!-- QR CODE (même design que ListeParties) -->
+      <div class="qr" v-if="qrCode" @click.stop>
+        <img :src="qrCode" alt="QR Code" />
+        <span class="qr-label">Scanner pour rejoindre</span>
+      </div>
+
       <!-- LISTE DES JOUEURS -->
       <div class="liste-joueurs">
         <div
@@ -32,11 +38,8 @@
           </div>
 
           <!-- STATUT -->
-          <div
-            class="statut"
-            :class="joueur.pret ? 'pret' : 'attente'"
-          >
-            {{ joueur.pret ? 'Prêt' : 'En attente' }}
+          <div class="statut" :class="joueur.pret ? 'pret' : 'attente'">
+            {{ joueur.pret ? "Prêt" : "En attente" }}
           </div>
         </div>
       </div>
@@ -54,10 +57,9 @@
   </div>
 </template>
 
-
-
 <script>
 import axios from "axios";
+import QRCode from "qrcode";
 
 export default {
   name: "FileAttentePartie",
@@ -68,6 +70,7 @@ export default {
         nom: "File d’attente",
       },
       joueurs: [],
+      qrCode: null,
       pollingId: null,
     };
   },
@@ -87,19 +90,23 @@ export default {
     },
   },
 
-  mounted() {
+  async mounted() {
     if (!this.codePartie) {
-      console.error("❌ Code de partie manquant");
+      console.error("❌ Code de partie manquant dans l’URL");
       return;
     }
 
-    // 1️⃣ Chargement initial COMPLET
-    this.chargerJoueurs();
+    // 🔹 QR code (comme ListeParties)
+    this.qrCode = await QRCode.toDataURL(this.codePartie, {
+      width: 140,
+      margin: 1,
+    });
 
-    // 2️⃣ Polling léger uniquement sur l'état prêt
-    this.pollingId = setInterval(() => {
-      this.pollingEtatEquipements();
-    }, 2000);
+    // 🔹 Chargement initial complet
+    await this.chargerJoueurs();
+
+    // 🔹 Polling léger (uniquement prêt / pas prêt)
+    this.pollingId = setInterval(this.pollingEtatEquipements, 2000);
   },
 
   beforeUnmount() {
@@ -110,9 +117,6 @@ export default {
   },
 
   methods: {
-    /* =========================
-       CHARGEMENT INITIAL
-       ========================= */
     async chargerJoueurs() {
       try {
         const response = await axios.get(
@@ -132,27 +136,16 @@ export default {
       }
     },
 
-    /* =========================
-       POLLING OPTIMISÉ
-       ========================= */
     async pollingEtatEquipements() {
       try {
         const response = await axios.get(
           `/api/games/${this.codePartie}/players/`
         );
 
-        const backendPlayers = response.data;
-
-        // 🔥 Mise à jour UNIQUEMENT du champ `pret`
-        backendPlayers.forEach(bp => {
-          const localPlayer = this.joueurs.find(j => j.id === bp.id);
-
-          if (localPlayer) {
-            const nouveauPret = bp.equipment_id !== null;
-
-            if (localPlayer.pret !== nouveauPret) {
-              localPlayer.pret = nouveauPret;
-            }
+        response.data.forEach(bp => {
+          const local = this.joueurs.find(j => j.id === bp.id);
+          if (local) {
+            local.pret = bp.equipment_id !== null;
           }
         });
       } catch (error) {
@@ -163,7 +156,7 @@ export default {
     lancerPartie() {
       if (!this.tousPrets) return;
 
-      // 🔮 futur endpoint backend
+      // 🔮 futur endpoint backend :
       // await axios.post(`/api/games/${this.codePartie}/start/`);
 
       this.$router.push({
@@ -174,7 +167,6 @@ export default {
   },
 };
 </script>
-
 
 <style>
 .page-file-attente {
@@ -191,6 +183,7 @@ export default {
   gap: 28px;
 }
 
+/* EN-TÊTE */
 .entete {
   display: flex;
   justify-content: space-between;
@@ -202,6 +195,30 @@ export default {
   font-weight: bold;
 }
 
+/* QR (identique ListeParties) */
+.qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.qr img {
+  width: 130px;
+  height: 130px;
+  background: white;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.qr-label {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.9;
+  text-align: center;
+}
+
+/* LISTE JOUEURS */
 .liste-joueurs {
   display: flex;
   flex-direction: column;
@@ -215,6 +232,7 @@ export default {
   padding: 16px;
 }
 
+/* IDENTITÉ */
 .identite {
   display: flex;
   align-items: center;
@@ -237,6 +255,7 @@ export default {
   font-weight: bold;
 }
 
+/* ÉQUIPEMENTS */
 .equipements {
   display: flex;
   gap: 14px;
@@ -245,19 +264,18 @@ export default {
 
 .equipement {
   opacity: 0.25;
-  transition: opacity 0.2s ease;
 }
 
 .equipement.ok {
   opacity: 1;
 }
 
+/* STATUT */
 .statut {
   padding: 6px 16px;
   border-radius: 20px;
   font-weight: bold;
   font-size: 14px;
-  user-select: none;
 }
 
 .pret {
@@ -268,6 +286,7 @@ export default {
   background-color: #f59e0b;
 }
 
+/* ACTION */
 .bouton-lancer {
   margin-top: 10px;
   height: 48px;

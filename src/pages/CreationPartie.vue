@@ -105,14 +105,14 @@ export default {
       this.chargement = true;
 
       try {
-        await axios.post("/api/games/", {
+        const response = await axios.post("/api/games/", {
           name: this.nom,
           max_players: this.joueurs,
           duration_seconds,
         });
 
         // Retour à la liste des parties
-        this.$router.push("/parties");
+        this.$router.push(`/file-attente/${response.data.code}`);
       } catch (error) {
         console.error("Erreur backend :", error.response?.data);
         alert("Erreur lors de la création de la partie");

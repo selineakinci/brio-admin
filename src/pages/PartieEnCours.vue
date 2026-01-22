@@ -4,17 +4,19 @@
     <!-- ================= ZONE JEU ================= -->
     <div class="zone-jeu">
 
+      <!-- NOM PARTIE (BACKEND) -->
       <h1 class="titre-partie">{{ partie.nom }}</h1>
 
-      <!-- MINUTEUR -->
+      <!-- MINUTEUR (BACKEND) -->
       <div class="minuteur-glow">{{ tempsAffiche }}</div>
 
-      <!-- CONTROLES -->
+      <!-- CONTROLES ADMIN -->
       <div class="actions-partie">
-        <button class="btn-brio">⏸ Pause</button>
-        <button class="btn-brio">▶ Reprendre</button>
-        <button class="btn-brio danger">⛔ Mettre fin</button>
-        <button class="btn-brio secondaire">↻ Réinitialiser</button>
+        <button class="btn-brio" @click="pausePartie">⏸ Pause</button>
+        <button class="btn-brio" @click="reprendrePartie">▶ Reprendre</button>
+        <button class="btn-brio danger" @click="terminerPartie">
+          ⛔ Mettre fin
+        </button>
       </div>
 
       <!-- ================= JOUEURS ================= -->
@@ -235,19 +237,23 @@
   </div>
 </template>
 
+
+
 <script>
+import axios from "axios";
+
 export default {
   name: "PartieEnCours",
 
   data() {
     return {
-      partie: { nom: "BRIO – Night Battle" },
-      temps: 420,
+      partie: {
+        nom: "Chargement...",
+        status: null, // 🔥 IMPORTANT
+      },
+      temps: 0,
 
-      // conservés (panneaux contextuels / compatibilité)
-      joueurBouclier: null,
-      joueurMunitions: null,
-
+      // ⚠️ joueurs laissés EN DUR comme demandé
       joueurs: [
         {
           id: 1,
@@ -272,28 +278,16 @@ export default {
           kills: 1,
           mort: false,
           confirmKill: false
-        },
-        {
-          id: 3,
-          nom: "Julie",
-          couleur: "#3b82f6",
-          vie: 100,
-          bouclier: 60,
-          munitions: 12,
-          munitionsMax: 12,
-          kills: 0,
-          mort: false,
-          confirmKill: false
         }
-      ],
-
-      historique: [],
-      messages: [],
-      nouveauMessage: ""
+      ]
     };
   },
 
   computed: {
+    codePartie() {
+      return this.$route.params.code;
+    },
+
     tempsAffiche() {
       const m = String(Math.floor(this.temps / 60)).padStart(2, "0");
       const s = String(this.temps % 60).padStart(2, "0");
@@ -302,90 +296,88 @@ export default {
   },
 
   mounted() {
+    this.chargerInfosPartie();
+
+    // ⏱ Décompte local (visuel)
     setInterval(() => {
-      if (this.temps > 0) this.temps--;
+      if (this.temps > 0 && this.partie.status === "running") {
+        this.temps--;
+      }
     }, 1000);
   },
 
   methods: {
-    /* ===================== ÉLIMINATION ===================== */
+    /* =========================
+       INFOS PARTIE (BACKEND)
+       ========================= */
+    async chargerInfosPartie() {
+      try {
+        const res = await axios.get("/api/games/");
+        const game = res.data.find(g => g.code === this.codePartie);
 
-    tuer(j) {
-      j.mort = true;
-      j.vie = 0;          // sécurité visuelle/logique
-      j.bouclier = 0;     // 🔥 RESET DU BOUCLIER À LA MORT
-      j.confirmKill = false;
+        if (!game) {
+          console.error("❌ Partie introuvable");
+          return;
+        }
 
-      this.historique.unshift({
-        texte: `☠️ ${j.nom} éliminé`,
-        couleur: j.couleur
-      });
-    },
-
-    resusciter(j) {
-      j.mort = false;
-      j.vie = 50;
-      j.bouclier = 0;
-      j.confirmKill = false;
-
-      this.historique.unshift({
-        texte: `♻️ ${j.nom} réanimé par l’admin`,
-        couleur: j.couleur
-      });
-    },
-
-    /* ===================== VIE ===================== */
-
-    modifierVie(j, valeur) {
-      if (j.mort) return;
-
-      j.vie = Math.max(0, Math.min(100, j.vie + valeur));
-
-      if (j.vie === 0) {
-        this.tuer(j);
+        this.partie.nom = game.name;
+        this.partie.status = game.status; // 🔥 CRUCIAL
+        this.temps = game.duration_seconds;
+      } catch (err) {
+        console.error("Erreur chargement partie", err);
       }
     },
 
-    /* ===================== BOUCLIER (CORRIGÉ) ===================== */
-    /* identique à la logique de la vie */
+    /* =========================
+       CONTROLES ADMIN
+       ========================= */
 
-    modBouclier(j, valeur) {
-      if (j.mort) return;
+    // ⏸ PAUSE → uniquement si RUNNING
+    async pausePartie() {
+      if (this.partie.status !== "running") return;
 
-      j.bouclier = Math.max(
-        0,
-        Math.min(100, j.bouclier + valeur)
-      );
+      try {
+        await axios.post(`/api/games/${this.codePartie}/pause/`);
+        this.partie.status = "paused"; // 🔥 sync front
+      } catch (err) {
+        console.error("Erreur pause", err.response?.data || err);
+      }
     },
 
-    /* ===================== MUNITIONS (CORRIGÉ) ===================== */
-    /* identique à la logique de la vie */
+    // ▶ REPRENDRE → uniquement si PAUSED
+    async reprendrePartie() {
+      if (this.partie.status !== "paused") return;
 
-    modMunitions(j, valeur) {
-      if (j.mort) return;
-
-      j.munitions = Math.max(
-        0,
-        Math.min(j.munitionsMax, j.munitions + valeur)
-      );
+      try {
+        await axios.post(`/api/games/${this.codePartie}/resume/`);
+        this.partie.status = "running"; // 🔥 sync front
+      } catch (err) {
+        console.error("Erreur reprise", err.response?.data || err);
+      }
     },
 
-    /* ===================== CHAT ===================== */
+    // ⛔ FIN → toujours autorisé sauf FINISHED
+    async terminerPartie() {
+      if (this.partie.status === "finished") return;
 
-    envoyerMessage() {
-      if (!this.nouveauMessage) return;
+      try {
+        await axios.post(`/api/games/${this.codePartie}/end/`, {
+          reason: "admin",
+        });
 
-      this.messages.push({
-        auteur: "Admin",
-        texte: this.nouveauMessage,
-        couleur: "#a855f7"
-      });
+        this.partie.status = "finished";
 
-      this.nouveauMessage = "";
+        this.$router.push("/parties");
+      } catch (err) {
+        console.error("Erreur fin de partie", err.response?.data || err);
+      }
     }
   }
 };
 </script>
+
+
+
 
 <style>
 /* ===== LAYOUT ===== */
@@ -847,6 +839,14 @@ export default {
   height: calc(100vh - 48px);
   pointer-events: none; /* évite de bloquer le scroll */
 }
+.hud-droite {
+  pointer-events: none;
+}
+
+.hud-droite .hud-carte {
+  pointer-events: auto;
+}
+
 
 /* Les cartes restent interactives */
 .hud-carte {
