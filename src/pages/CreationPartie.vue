@@ -32,7 +32,7 @@
           </div>
 
           <div class="duree-hint">
-            Durée comprise entre 1 et 120 minutes
+
           </div>
         </div>
       </div>

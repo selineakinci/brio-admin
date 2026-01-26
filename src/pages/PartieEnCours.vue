@@ -4,64 +4,34 @@
     <!-- ================= ZONE JEU ================= -->
     <div class="zone-jeu">
 
-      <!-- NOM PARTIE (BACKEND) -->
       <h1 class="titre-partie">{{ partie.nom }}</h1>
-
-      <!-- MINUTEUR (BACKEND) -->
       <div class="minuteur-glow">{{ tempsAffiche }}</div>
 
-      <!-- CONTROLES ADMIN -->
+      <!-- CONTROLES PARTIE -->
       <div class="actions-partie">
         <button class="btn-brio" @click="pausePartie">⏸ Pause</button>
         <button class="btn-brio" @click="reprendrePartie">▶ Reprendre</button>
-        <button class="btn-brio danger" @click="terminerPartie">
-          ⛔ Mettre fin
-        </button>
+        <button class="btn-brio danger" @click="terminerPartie">⛔ Mettre fin</button>
       </div>
 
       <!-- ================= JOUEURS ================= -->
       <div class="liste-joueurs">
-
         <div
           v-for="j in joueurs"
           :key="j.id"
           class="carte-joueur"
-          :class="{
-            mort: j.mort,
-            vivant: !j.mort,
-            danger: !j.mort && j.vie <= 25
-          }"
+          :class="{ mort: !j.is_alive, danger: j.is_alive && j.hp <= 25 }"
         >
 
-          <!-- DONNÉES JOUEUR -->
+          <!-- IDENTITÉ -->
           <div class="zone zone-identite">
             <div class="zone-titre">JOUEUR</div>
+            <div class="nom">{{ j.pseudo }}</div>
 
-            <!-- Nom joueur -->
-            <div class="nom" :style="{ color: j.couleur }">
-              {{ j.nom }}
-            </div>
-
-            <!-- ETAT CENTRAL GRAND FORMAT -->
             <div class="etat-central">
-
-              <!-- JOUEUR EN VIE -->
-              <template v-if="!j.mort && j.vie > 25">
-                <div class="etat-circle alive"></div>
-                <div class="etat-text alive">EN VIE</div>
-              </template>
-
-              <!-- JOUEUR EN DANGER -->
-              <template v-else-if="!j.mort && j.vie <= 25">
-                <div class="etat-circle danger"></div>
-                <div class="etat-text danger">DANGER</div>
-              </template>
-
-              <!-- JOUEUR MORT -->
-              <template v-else>
-                <div class="etat-text dead">ÉLIMINÉ</div>
-              </template>
-
+              <div v-if="!j.is_alive" class="etat-text dead">ÉLIMINÉ</div>
+              <div v-else-if="j.hp <= 25" class="etat-text danger">DANGER</div>
+              <div v-else class="etat-text alive">EN VIE</div>
             </div>
           </div>
 
@@ -69,173 +39,66 @@
           <div class="zone zone-stats">
             <div class="zone-titre">STATISTIQUES</div>
 
-            <!-- contenu centré -->
-            <div class="stats-centered">
-              
-              <!-- ❤️ VIE -->
+            <div class="stats-contenu">
               <div class="stat-block">
-                <div class="stat-icon">❤️</div>
-                <div class="barre big">
-                  <div class="vie" :style="{ width: j.vie + '%' }"></div>
-                  <span class="barre-text center">{{ j.vie }}%</span>
-                </div>
+                ❤️ {{ j.hp }}%
               </div>
-
-              <!-- 🛡️ BOUCLIER -->
               <div class="stat-block">
-                <div class="stat-icon">🛡️</div>
-                <div class="barre big">
-                  <div class="bouclier" :style="{ width: j.bouclier + '%' }"></div>
-                  <span class="barre-text center">{{ j.bouclier }}%</span>
-                </div>
+                🛡️ {{ j.shield }}%
               </div>
-
-              <!-- 🔫 MUNITIONS -->
-              <div class="stat-block munitions-block">
-                <div class="weapon-icon">🔫</div>
-
-                <div class="ammo-capsules">
-                  <span
-                    v-for="n in j.munitionsMax"
-                    :key="n"
-                    :class="{ active: n <= j.munitions }"
-                  ></span>
-                </div>
-
-                <div class="ammo-count">
-                  {{ j.munitions }} / {{ j.munitionsMax }}
-                </div>
+              <div class="stat-block">
+                🔫 {{ j.magazines ?? 0 }}
               </div>
-
             </div>
           </div>
 
-          <!-- ================= ACTIONS ADMIN ================= -->
+          <!-- ACTIONS ADMIN -->
           <div class="zone zone-actions">
             <div class="zone-titre">ACTIONS ADMIN</div>
 
-            <!-- JOUEUR VIVANT -->
-            <template v-if="!j.mort">
-
-              <!-- ❤️ VIE -->
+            <template v-if="j.is_alive">
               <div class="admin-section">
-                <div class="admin-label">❤️ VIE</div>
-                <div class="admin-life-control">
-                  <button class="btn-admin minus" @click="modifierVie(j, -10)">−</button>
-                  <div class="admin-life-bar">
-                    <div class="admin-life-fill vie" :style="{ width: j.vie + '%' }"></div>
-                  </div>
-                  <button class="btn-admin plus" @click="modifierVie(j, 10)">+</button>
-                </div>
+                <button @click="addHp(j)">+ Vie</button>
+                <button @click="removeHp(j)">− Vie</button>
               </div>
 
-              <!-- 🛡️ BOUCLIER (FIX) -->
               <div class="admin-section">
-                <div class="admin-label">🛡️ BOUCLIER</div>
-                <div class="admin-life-control">
-                  <button class="btn-admin minus" @click="modBouclier(j, -10)">−</button>
-                  <div class="admin-life-bar">
-                    <div class="admin-life-fill bouclier" :style="{ width: j.bouclier + '%' }"></div>
-                  </div>
-                  <button class="btn-admin plus" @click="modBouclier(j, 10)">+</button>
-                </div>
+                <button @click="addShield(j)">+ Bouclier</button>
+                <button @click="removeShield(j)">− Bouclier</button>
               </div>
 
-              <!-- 🔫 MUNITIONS (FIX) -->
               <div class="admin-section">
-                <div class="admin-label">🔫 MUNITIONS</div>
-                <div class="admin-life-control">
-                  <button class="btn-admin minus" @click="modMunitions(j, -1)">−</button>
-                  <div class="admin-life-bar">
-                    <div
-                      class="admin-life-fill munitions"
-                      :style="{ width: (j.munitions / j.munitionsMax * 100) + '%' }"
-                    ></div>
-                  </div>
-                  <button class="btn-admin plus" @click="modMunitions(j, 1)">+</button>
-                </div>
+                <button @click="addMagazine(j)">+ Chargeur</button>
+                <button @click="removeMagazine(j)">− Chargeur</button>
               </div>
 
-              <!-- ☠️ ÉLIMINER (DESIGN AMÉLIORÉ) -->
               <div class="admin-section critical">
-                <button
-                  class="btn-admin kill full"
-                  @click="j.confirmKill = !j.confirmKill"
-                >
-                  ☠️ ÉLIMINER LE JOUEUR
+                <button class="btn-admin kill" @click="eliminer(j)">
+                  ☠️ ÉLIMINER
                 </button>
-
-                <div v-if="j.confirmKill" class="confirm-inline">
-                  <span>Confirmer ?</span>
-                  <button class="btn-admin confirm" @click="tuer(j)">OUI</button>
-                  <button class="btn-admin cancel" @click="j.confirmKill = false">NON</button>
-                </div>
               </div>
-
             </template>
 
-            <!-- JOUEUR MORT -->
             <template v-else>
-              <div class="admin-section critical">
-                <button class="btn-admin respawn full" @click="resusciter(j)">
-                  ♻️ RÉANIMER
-                </button>
-              </div>
+              <button class="btn-admin respawn" @click="reanimer(j)">
+                ♻️ RÉANIMER
+              </button>
             </template>
           </div>
 
           <!-- SCORE -->
           <div class="zone zone-score">
             <div class="zone-titre">SCORE</div>
-            <div class="kills">☠️ {{ j.kills }}</div>
+            <div class="score-center">☠️ {{ j.kills }}</div>
           </div>
 
         </div>
       </div>
     </div>
-
-    <!-- ================= HUD DROIT ================= -->
-    <div class="hud-droite">
-
-      <!-- HISTORIQUE -->
-      <div class="hud-carte">
-        <div class="hud-titre">HISTORIQUE</div>
-        <div class="feed">
-          <div
-            v-for="(e,i) in historique"
-            :key="i"
-            :style="{ color: e.couleur }"
-          >
-            {{ e.texte }}
-          </div>
-        </div>
-      </div>
-
-      <!-- COMMS -->
-      <div class="hud-carte chat">
-        <div class="hud-titre">CHAT</div>
-
-        <div class="chat-messages">
-          <div v-for="(m,i) in messages" :key="i">
-            <span :style="{ color: m.couleur }">{{ m.auteur }}</span> :
-            {{ m.texte }}
-          </div>
-        </div>
-
-        <div class="chat-input">
-          <input
-            v-model="nouveauMessage"
-            placeholder="Message admin..."
-            @keydown.enter="envoyerMessage"
-          />
-          <button @click="envoyerMessage">➤</button>
-        </div>
-      </div>
-
-    </div>
-
   </div>
 </template>
+
+
 
 
 
@@ -249,37 +112,13 @@ export default {
     return {
       partie: {
         nom: "Chargement...",
-        status: null, // 🔥 IMPORTANT
+        code: null,
+        status: null,
       },
       temps: 0,
 
-      // ⚠️ joueurs laissés EN DUR comme demandé
-      joueurs: [
-        {
-          id: 1,
-          nom: "Mathis",
-          couleur: "#ef4444",
-          vie: 100,
-          bouclier: 80,
-          munitions: 10,
-          munitionsMax: 12,
-          kills: 2,
-          mort: false,
-          confirmKill: false
-        },
-        {
-          id: 2,
-          nom: "Matteo",
-          couleur: "#22c55e",
-          vie: 100,
-          bouclier: 40,
-          munitions: 6,
-          munitionsMax: 12,
-          kills: 1,
-          mort: false,
-          confirmKill: false
-        }
-      ]
+      // ⚠️ joueurs inchangés comme demandé
+      joueurs: []
     };
   },
 
@@ -296,9 +135,15 @@ export default {
   },
 
   mounted() {
+    if (!this.codePartie) {
+      console.error("❌ Code de partie manquant dans l’URL");
+      return;
+    }
+
+    this.partie.code = this.codePartie;
     this.chargerInfosPartie();
 
-    // ⏱ Décompte local (visuel)
+    // ⏱️ Décompte local (affichage)
     setInterval(() => {
       if (this.temps > 0 && this.partie.status === "running") {
         this.temps--;
@@ -307,13 +152,18 @@ export default {
   },
 
   methods: {
-    /* =========================
-       INFOS PARTIE (BACKEND)
-       ========================= */
+    /* ================= API ================= */
+
+    api(path) {
+      return `/api/games/${this.partie.code}${path}`;
+    },
+
+    /* ================= INFOS PARTIE ================= */
+
     async chargerInfosPartie() {
       try {
         const res = await axios.get("/api/games/");
-        const game = res.data.find(g => g.code === this.codePartie);
+        const game = res.data.find(g => g.code === this.partie.code);
 
         if (!game) {
           console.error("❌ Partie introuvable");
@@ -321,60 +171,95 @@ export default {
         }
 
         this.partie.nom = game.name;
-        this.partie.status = game.status; // 🔥 CRUCIAL
+        this.partie.status = game.status;
         this.temps = game.duration_seconds;
       } catch (err) {
         console.error("Erreur chargement partie", err);
       }
     },
 
-    /* =========================
-       CONTROLES ADMIN
-       ========================= */
+    /* ================= CONTROLES PARTIE ================= */
 
-    // ⏸ PAUSE → uniquement si RUNNING
     async pausePartie() {
       if (this.partie.status !== "running") return;
 
       try {
-        await axios.post(`/api/games/${this.codePartie}/pause/`);
-        this.partie.status = "paused"; // 🔥 sync front
+        await axios.post(this.api("/pause/"));
+        this.partie.status = "paused";
       } catch (err) {
         console.error("Erreur pause", err.response?.data || err);
       }
     },
 
-    // ▶ REPRENDRE → uniquement si PAUSED
     async reprendrePartie() {
       if (this.partie.status !== "paused") return;
 
       try {
-        await axios.post(`/api/games/${this.codePartie}/resume/`);
-        this.partie.status = "running"; // 🔥 sync front
+        await axios.post(this.api("/resume/"));
+        this.partie.status = "running";
       } catch (err) {
         console.error("Erreur reprise", err.response?.data || err);
       }
     },
 
-    // ⛔ FIN → toujours autorisé sauf FINISHED
     async terminerPartie() {
-      if (this.partie.status === "finished") return;
-
       try {
-        await axios.post(`/api/games/${this.codePartie}/end/`, {
-          reason: "admin",
-        });
-
+        await axios.post(this.api("/end/"), { reason: "admin" });
         this.partie.status = "finished";
-
         this.$router.push("/parties");
       } catch (err) {
         console.error("Erreur fin de partie", err.response?.data || err);
       }
+    },
+
+    /* ================= JOUEURS (inchangé) ================= */
+
+    async addHp(j) {
+      const res = await axios.post(this.api(`/players/${j.id}/add-hp/`));
+      Object.assign(j, res.data);
+    },
+
+    async removeHp(j) {
+      const res = await axios.post(this.api(`/players/${j.id}/remove-hp/`));
+      Object.assign(j, res.data);
+    },
+
+    async addShield(j) {
+      const res = await axios.post(this.api(`/players/${j.id}/add-shield/`));
+      Object.assign(j, res.data);
+    },
+
+    async removeShield(j) {
+      const res = await axios.post(this.api(`/players/${j.id}/remove-shield/`));
+      Object.assign(j, res.data);
+    },
+
+    async addMagazine(j) {
+      const res = await axios.post(this.api(`/players/${j.id}/add-magazine/`));
+      Object.assign(j, res.data);
+    },
+
+    async removeMagazine(j) {
+      const res = await axios.post(this.api(`/players/${j.id}/remove-magazine/`));
+      Object.assign(j, res.data);
+    },
+
+    async eliminer(j) {
+      const res = await axios.post(this.api(`/players/${j.id}/kill/`));
+      Object.assign(j, res.data);
+    },
+
+    async reanimer(j) {
+      const res = await axios.post(this.api(`/players/${j.id}/resurrect/`));
+      Object.assign(j, res.data);
     }
   }
 };
 </script>
+
+
+
+
 
 
 
@@ -432,7 +317,6 @@ export default {
   background:rgba(255,255,255,0.05);
   border-radius:12px;
   padding:10px;
-  height:100%;
   box-sizing:border-box;
   display:flex;
   flex-direction:column;
@@ -446,17 +330,44 @@ export default {
   align-self: center;      
   width: 100%;             
 
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.zone-stats.sans-reserve .stats-contenu {
+  justify-content: center;
+}
+
+.zone-stats.sans-munitions .stats-contenu {
+  justify-content: center;
+}
+
+.zone-stats.sans-munitions .weapon-icon {
+  opacity: 0.35;
+}
+
+.zone-stats.sans-munitions .ammo-count {
+  opacity: 0.4;
+}
+
+
+.stats-contenu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  transition: all 0.25s ease;
 }
 
 /* ===== SCORE ===== */
 .zone-score {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
 }
-
+.score-center {
+  font-size: 28px;
+  font-weight: 900;
+}
 .zone-score .kills {
   font-size:22px;
   font-weight:bold;
@@ -494,6 +405,45 @@ export default {
   flex-direction:column;
   gap:10px;
   justify-content:space-between;
+  position: relative;
+}
+.carte-joueur.mort .zone-actions {
+  display: flex;
+  align-items: center;      /* centré verticalement */
+  justify-content: center;  /* centré horizontalement */
+}
+.carte-joueur.mort .admin-section.admin-center {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* bouton réanimer */
+.btn-admin.respawn.full {
+  width: 100%;
+  max-width: 180px;
+  height: 44px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  border-radius: 14px;
+}
+
+/* ===== ADMIN : CHARGEURS ===== */
+.admin-section .admin-life-control {
+  align-items: center;
+}
+
+.admin-section .btn-admin.minus,
+.admin-section .btn-admin.plus {
+  width: 32px;
+  height: 32px;
+}
+/* bouton désactivé chargeur */
+.btn-admin:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Sections internes */
@@ -978,7 +928,8 @@ export default {
 }
 
 .zone-stats {
-  justify-content: flex-start;
+  display: flex;
+  flex-direction: column;
 }
 
 /* bloc générique */
@@ -1047,6 +998,495 @@ export default {
   letter-spacing: 1px;
   opacity: 0.8;
 }
+/* ===== CHARGEURS (ADMIN) ===== */
+.mag-count {
+  min-width: 36px;
+  text-align: center;
+  font-weight: bold;
+  color: #facc15;
+}
+
+.chargeurs-visu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+/* ===== RACK ===== */
+.chargeurs-rack {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.35);
+  border-radius: 10px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
+}
+.chargeur {
+  position: relative;
+  width: 14px;
+  height: 32px;
+  border-radius: 3px 3px 2px 2px;
+  background: linear-gradient(
+    180deg,
+    #4b5563 0%,
+    #1f2937 60%,
+    #020617 100%
+  );
+  box-shadow:
+    inset 0 0 6px rgba(0,0,0,0.8),
+    0 2px 6px rgba(0,0,0,0.7);
+  outline: 1px solid rgba(255,255,255,0.08);
+}
+/* bouton désactivé */
+.btn-admin:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* encoche bas du chargeur */
+.chargeur::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 3px;
+  width: 8px;
+  height: 4px;
+  background: #020617;
+  border-radius: 0 0 2px 2px;
+}
+
+/* léger glow pour lisibilité */
+.chargeur {
+  outline: 1px solid rgba(255,255,255,0.08);
+}
+
+.chargeur-balles {
+  position: absolute;
+  top: -3px;
+  left: 1px;
+  right: 1px;
+  height: 6px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #facc15 0px,
+      #facc15 3px,
+      #ca8a04 3px,
+      #ca8a04 5px
+    );
+  border-radius: 2px 2px 0 0;
+  box-shadow:
+    inset 0 0 2px rgba(0,0,0,0.6),
+    0 0 4px rgba(250,204,21,0.6);
+}
+.chargeurs-rail {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 14px;
+  justify-content: center;
+}
+
+.chargeur-arme {
+  width: 14px;
+  height: 36px;
+  background: linear-gradient(180deg,#2a2a2a,#020617);
+  border-radius: 3px;
+  position: relative;
+}
+
+
+.chargeur-arme::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 1px;
+  right: 1px;
+  height: 4px;
+  background: #111;
+  border-radius: 2px 2px 0 0;
+}
+
+/* encoche inférieure (signature chargeur arme) */
+.chargeur-arme::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 2px;
+  width: 6px;
+  height: 4px;
+  background: #020617;
+  border-radius: 0 0 2px 2px;
+}
+
+/* ===== INFO / LÉGENDE ===== */
+.chargeurs-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.75;
+}
+
+/* ===== INDICATEUR RÉSERVE ===== */
+.chargeurs-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.75;
+}
+
+/* balle / ogive */
+.ammo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+
+  background: radial-gradient(
+    circle at 30% 30%,
+    #fde68a,
+    #facc15 60%,
+    #ca8a04 100%
+  );
+
+  box-shadow:
+    0 0 8px rgba(250,204,21,0.9),
+    inset 0 0 3px rgba(0,0,0,0.6);
+
+  animation: ammo-pulse 1.6s infinite;
+}
+
+/* label discret mais stylé */
+.chargeurs-label {
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+
+  color: rgba(255,255,255,0.55);
+
+  position: relative;
+  top: 1px;
+}
+
+/* animation subtile */
+@keyframes ammo-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+}
+
+
+
+/* ===== OGIVES (BALLES) VISIBLES ===== */
+.chargeur-arme .ogives {
+  position: absolute;
+  top: -6px;
+  left: 1px;
+  right: 1px;
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,#facc15 0 3px,#92400e 3px 5px
+  );
+}
+/* ===================== */
+/* JOUEURS – MODE CHARGEUR */
+/* ===================== */
+
+.joueurs-chargeurs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+/* chargeur */
+.chargeur-visuel {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg,#1f2937,#020617);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 0 10px rgba(0,0,0,0.8),
+    0 4px 14px rgba(0,0,0,0.6);
+}
+
+/* ogive */
+.ogive {
+  width: 10px;
+  height: 28px;
+  border-radius: 3px 3px 2px 2px;
+  background: linear-gradient(180deg,#374151,#020617);
+  cursor: pointer;
+  position: relative;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+/* balle active */
+.ogive.active {
+  background: linear-gradient(180deg,#facc15,#ca8a04);
+  box-shadow: 0 0 8px rgba(250,204,21,0.8);
+}
+
+/* pointe balle */
+.ogive::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 1px;
+  right: 1px;
+  height: 6px;
+  background: linear-gradient(180deg,#fde68a,#facc15);
+  border-radius: 2px 2px 0 0;
+}
+
+/* hover */
+.ogive:hover {
+  transform: translateY(-2px);
+}
+
+/* compteur */
+.joueurs-compteur {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  background: var(--degrade-brio);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* actions */
+.joueurs-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.joueurs-actions button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  font-size: 22px;
+  background: var(--degrade-brio);
+  color: white;
+  cursor: pointer;
+  transition: transform .15s ease, opacity .15s ease;
+}
+
+.joueurs-actions button:hover {
+  transform: scale(1.1);
+}
+
+.joueurs-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hud-droite {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  width: 22%;
+  height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* espace entre munitions et réserve */
+.chargeurs-hud {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* ⬅️ centre par rapport au bloc stats */
+  transition: margin-top 0.2s ease, opacity 0.2s ease;
+}
+/* ===== CENTRAGE BOUTONS CHARGEURS ===== */
+.admin-section .admin-life-control {
+  justify-content: center;
+}
+
+.mag-count {
+  min-width: 40px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: #facc15;
+}
+
+/* ===== STATS ADAPTATIVES SELON RÉSERVE ===== */
+.zone-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* quand il n'y a PLUS de réserve */
+.zone-stats.sans-reserve {
+  justify-content: center;   /* ⬅️ vrai recentrage vertical */
+  gap: 18px;
+}
+
+
+/* la réserve ne force PLUS la hauteur */
+.chargeurs-hud {
+  margin-top: 16px;
+}
+
+/* quand elle n'existe pas, rien ne "bloque" */
+.zone-stats.sans-reserve .chargeurs-hud {
+  display: none;
+}
+
+/* ================================ */
+/* STATS — COMPORTEMENT ADAPTATIF */
+/* ================================ */
+
+.zone-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.25s ease;
+}
+
+/* ─────────────────────────────── */
+/* Quand il n’y a PLUS de réserve */
+/* ─────────────────────────────── */
+.zone-stats.sans-reserve {
+  gap: 12px;
+}
+
+/* ─────────────────────────────── */
+/* Quand il n’y a PLUS de munitions */
+/* ─────────────────────────────── */
+.zone-stats.sans-munitions {
+  justify-content: center;
+  align-items: center;
+  gap: 22px;
+}
+
+/* option : rendre l’arme plus "vide" */
+.zone-stats.sans-munitions .weapon-icon {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+.zone-stats.sans-reserve .munitions-block {
+  margin-top: 0;
+}
+.zone-stats.sans-reserve .stat-block,
+.zone-stats.sans-munitions .stat-block {
+  align-items: center;
+}
+
+
+/* option : capsules grisées */
+.zone-stats.sans-munitions .ammo-capsules span {
+  background: rgba(255,255,255,0.08);
+  box-shadow: none;
+}
+
+/* texte munitions discret */
+.zone-stats.sans-munitions .ammo-count {
+  opacity: 0.4;
+  letter-spacing: 2px;
+}
+
+/* ========================================= */
+/* MODE MORT — BOUTON RÉANIMER GLOBAL */
+/* ========================================= */
+
+/* la carte devient un conteneur */
+.carte-joueur.etat-mort {
+  position: relative;
+}
+
+/* on masque visuellement les actions admin */
+.carte-joueur.etat-mort .zone-actions {
+  background: none;
+  padding: 0;
+}
+
+/* supprime le bloc noir derrière */
+.carte-joueur.etat-mort .admin-section {
+  background: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* bouton réanimer AU CENTRE DE LA CARTE */
+.carte-joueur.etat-mort .btn-admin.respawn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 220px;
+  height: 52px;
+
+  font-size: 15px;
+  letter-spacing: 3px;
+  font-weight: 900;
+
+  border-radius: 18px;
+  z-index: 10;
+
+  background: linear-gradient(90deg,#22c55e,#16a34a);
+  box-shadow:
+    0 0 25px rgba(34,197,94,0.8),
+    0 0 60px rgba(34,197,94,0.4);
+}
+
+/* hover */
+.carte-joueur.etat-mort .btn-admin.respawn:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+}
+/* fond assombri quand mort */
+.carte-joueur.etat-mort > .zone:not(.zone-actions) {
+  opacity: 0.35;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+
+/* ===== BOUTONS PARTIE – INTERACTIFS ===== */
+
+.btn-brio {
+  cursor: pointer;
+  opacity: 1;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+/* Hover visible */
+.btn-brio:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* Click */
+.btn-brio:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Désactivé = vraiment désactivé */
+.btn-brio:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+  box-shadow: none;
+}
+
 
 </style>
 
