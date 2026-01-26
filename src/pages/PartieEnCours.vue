@@ -9,9 +9,28 @@
 
       <!-- CONTROLES PARTIE -->
       <div class="actions-partie">
-        <button class="btn-brio" @click="pausePartie">⏸ Pause</button>
-        <button class="btn-brio" @click="reprendrePartie">▶ Reprendre</button>
-        <button class="btn-brio danger" @click="terminerPartie">⛔ Mettre fin</button>
+        <button
+          class="btn-brio"
+          :disabled="partie.status !== 'running'"
+          @click="pausePartie"
+        >
+          ⏸ Pause
+        </button>
+
+        <button
+          class="btn-brio"
+          :disabled="partie.status !== 'paused'"
+          @click="reprendrePartie"
+        >
+          ▶ Reprendre
+        </button>
+
+        <button
+          class="btn-brio danger"
+          @click="terminerPartie"
+        >
+          ⛔ Mettre fin
+        </button>
       </div>
 
       <!-- ================= JOUEURS ================= -->
@@ -23,7 +42,6 @@
           :class="{ mort: !j.is_alive, danger: j.is_alive && j.hp <= 25 }"
         >
 
-          <!-- IDENTITÉ -->
           <div class="zone zone-identite">
             <div class="zone-titre">JOUEUR</div>
             <div class="nom">{{ j.pseudo }}</div>
@@ -35,48 +53,29 @@
             </div>
           </div>
 
-          <!-- STATS -->
           <div class="zone zone-stats">
             <div class="zone-titre">STATISTIQUES</div>
-
             <div class="stats-contenu">
-              <div class="stat-block">
-                ❤️ {{ j.hp }}%
-              </div>
-              <div class="stat-block">
-                🛡️ {{ j.shield }}%
-              </div>
-              <div class="stat-block">
-                🔫 {{ j.magazines ?? 0 }}
-              </div>
+              <div class="stat-block">❤️ {{ j.hp }}%</div>
+              <div class="stat-block">🛡️ {{ j.shield }}%</div>
+              <div class="stat-block">🔫 {{ j.magazines ?? 0 }}</div>
             </div>
           </div>
 
-          <!-- ACTIONS ADMIN -->
           <div class="zone zone-actions">
             <div class="zone-titre">ACTIONS ADMIN</div>
 
             <template v-if="j.is_alive">
-              <div class="admin-section">
-                <button @click="addHp(j)">+ Vie</button>
-                <button @click="removeHp(j)">− Vie</button>
-              </div>
+              <button @click="addHp(j)">+ Vie</button>
+              <button @click="removeHp(j)">− Vie</button>
+              <button @click="addShield(j)">+ Bouclier</button>
+              <button @click="removeShield(j)">− Bouclier</button>
+              <button @click="addMagazine(j)">+ Chargeur</button>
+              <button @click="removeMagazine(j)">− Chargeur</button>
 
-              <div class="admin-section">
-                <button @click="addShield(j)">+ Bouclier</button>
-                <button @click="removeShield(j)">− Bouclier</button>
-              </div>
-
-              <div class="admin-section">
-                <button @click="addMagazine(j)">+ Chargeur</button>
-                <button @click="removeMagazine(j)">− Chargeur</button>
-              </div>
-
-              <div class="admin-section critical">
-                <button class="btn-admin kill" @click="eliminer(j)">
-                  ☠️ ÉLIMINER
-                </button>
-              </div>
+              <button class="btn-admin kill" @click="eliminer(j)">
+                ☠️ ÉLIMINER
+              </button>
             </template>
 
             <template v-else>
@@ -86,7 +85,6 @@
             </template>
           </div>
 
-          <!-- SCORE -->
           <div class="zone zone-score">
             <div class="zone-titre">SCORE</div>
             <div class="score-center">☠️ {{ j.kills }}</div>
@@ -95,10 +93,97 @@
         </div>
       </div>
     </div>
+
+    <!-- ================= HUD DROIT FIXE ================= -->
+    <div class="hud-droite">
+
+      <!-- ===== HUD INFOS (HAUT DROITE) ===== -->
+      <div class="hud-carte hud-infos">
+        <div class="hud-titre">INFOS PARTIE</div>
+
+        <div class="hud-ligne">
+          <span>⏱ Temps</span>
+          <strong>{{ tempsAffiche }}</strong>
+        </div>
+
+        <div class="hud-ligne">
+          <span>🎮 Statut</span>
+          <strong>{{ partie.status }}</strong>
+        </div>
+
+        <div class="hud-ligne">
+          <span>👥 Joueurs</span>
+          <strong>{{ joueurs.length }}</strong>
+        </div>
+      </div>
+
+      <!-- ===== HISTORIQUE (JUSTE EN DESSOUS) ===== -->
+      <div class="hud-carte hud-historique">
+        <div class="hud-titre">HISTORIQUE DE LA PARTIE</div>
+
+        <div class="feed">
+          <div
+            v-for="(e, i) in historique"
+            :key="i"
+            class="event"
+            :class="e.type"
+          >
+            <!-- TOUCHÉ -->
+            <template v-if="e.type === 'hit'">
+              🔫 <strong>{{ e.from }}</strong> touche
+              <strong>{{ e.to }}</strong>
+              <span class="value">−{{ e.value }}%</span>
+            </template>
+
+            <!-- MORT -->
+            <template v-else-if="e.type === 'death'">
+              ☠️ <strong>{{ e.player }}</strong>
+              éliminé par <strong>{{ e.by }}</strong>
+            </template>
+
+            <!-- RÉSURRECTION ADMIN -->
+            <template v-else-if="e.type === 'admin_revive'">
+              ♻️ <strong>{{ e.player }}</strong>
+              ressuscité par l’admin
+            </template>
+
+            <!-- ACTION ADMIN -->
+            <template v-else-if="e.type === 'admin_action'">
+              🛠️ {{ e.message }}
+            </template>
+
+            <!-- SYSTÈME -->
+            <template v-else>
+              ⚙️ {{ e.message }}
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CHAT (BAS DROITE FIXE) ===== -->
+      <div class="hud-carte chat">
+        <div class="hud-titre">CHAT</div>
+
+        <div class="chat-messages">
+          <div class="chat-message system">
+            Connexion WebSocket…
+          </div>
+        </div>
+
+        <div class="chat-input">
+          <input
+            type="text"
+            placeholder="Message admin…"
+            disabled
+          />
+          <button disabled>➤</button>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 </template>
-
-
 
 
 
@@ -111,14 +196,13 @@ export default {
   data() {
     return {
       partie: {
-        nom: "Chargement...",
+        nom: "Chargement…",
         code: null,
         status: null,
       },
       temps: 0,
-
-      // ⚠️ joueurs inchangés comme demandé
-      joueurs: []
+      joueurs: [],
+      historique: []
     };
   },
 
@@ -136,126 +220,107 @@ export default {
 
   mounted() {
     if (!this.codePartie) {
-      console.error("❌ Code de partie manquant dans l’URL");
+      console.error("Code de partie manquant");
       return;
     }
 
     this.partie.code = this.codePartie;
-    this.chargerInfosPartie();
+    this.chargerPartie();
+    this.chargerJoueurs();
 
-    // ⏱️ Décompte local (affichage)
     setInterval(() => {
-      if (this.temps > 0 && this.partie.status === "running") {
+      if (this.partie.status === "running" && this.temps > 0) {
         this.temps--;
       }
     }, 1000);
   },
 
   methods: {
-    /* ================= API ================= */
-
     api(path) {
       return `/api/games/${this.partie.code}${path}`;
     },
 
-    /* ================= INFOS PARTIE ================= */
+    /* ===== INFOS PARTIE ===== */
 
-    async chargerInfosPartie() {
-      try {
-        const res = await axios.get("/api/games/");
-        const game = res.data.find(g => g.code === this.partie.code);
+    async chargerPartie() {
+      const res = await axios.get("/api/games/");
+      const game = res.data.find(g => g.code === this.partie.code);
 
-        if (!game) {
-          console.error("❌ Partie introuvable");
-          return;
-        }
+      if (!game) return;
 
-        this.partie.nom = game.name;
-        this.partie.status = game.status;
-        this.temps = game.duration_seconds;
-      } catch (err) {
-        console.error("Erreur chargement partie", err);
-      }
+      this.partie.nom = game.name;
+      this.partie.status = game.status;
+      this.temps = game.duration_seconds;
     },
 
-    /* ================= CONTROLES PARTIE ================= */
+    async chargerJoueurs() {
+      const res = await axios.get(this.api("/players/"));
+      this.joueurs = res.data;
+    },
+
+    /* ===== CONTROLES ===== */
 
     async pausePartie() {
-      if (this.partie.status !== "running") return;
-
-      try {
-        await axios.post(this.api("/pause/"));
-        this.partie.status = "paused";
-      } catch (err) {
-        console.error("Erreur pause", err.response?.data || err);
-      }
+      await axios.post(this.api("/pause/"));
+      this.partie.status = "paused";
+      this.pushHistorique("⏸ Partie mise en pause par l'admin");
     },
 
     async reprendrePartie() {
-      if (this.partie.status !== "paused") return;
-
-      try {
-        await axios.post(this.api("/resume/"));
-        this.partie.status = "running";
-      } catch (err) {
-        console.error("Erreur reprise", err.response?.data || err);
-      }
+      await axios.post(this.api("/resume/"));
+      this.partie.status = "running";
+      this.pushHistorique("▶ Partie reprise par l'admin");
     },
 
     async terminerPartie() {
-      try {
-        await axios.post(this.api("/end/"), { reason: "admin" });
-        this.partie.status = "finished";
-        this.$router.push("/parties");
-      } catch (err) {
-        console.error("Erreur fin de partie", err.response?.data || err);
-      }
+      await axios.post(this.api("/end/"), { reason: "admin" });
+      this.partie.status = "finished";
+      this.pushHistorique("⛔ Partie terminée par l'admin");
+      this.$router.push("/parties");
     },
 
-    /* ================= JOUEURS (inchangé) ================= */
+    /* ===== HISTORIQUE ===== */
+
+    pushHistorique(message) {
+      this.historique.unshift({
+        message,
+        ts: Date.now()
+      });
+    },
+
+    /* ===== ACTIONS JOUEURS ===== */
 
     async addHp(j) {
-      const res = await axios.post(this.api(`/players/${j.id}/add-hp/`));
-      Object.assign(j, res.data);
+      Object.assign(j, (await axios.post(this.api(`/players/${j.id}/add-hp/`))).data);
     },
-
     async removeHp(j) {
-      const res = await axios.post(this.api(`/players/${j.id}/remove-hp/`));
-      Object.assign(j, res.data);
+      Object.assign(j, (await axios.post(this.api(`/players/${j.id}/remove-hp/`))).data);
     },
-
     async addShield(j) {
-      const res = await axios.post(this.api(`/players/${j.id}/add-shield/`));
-      Object.assign(j, res.data);
+      Object.assign(j, (await axios.post(this.api(`/players/${j.id}/add-shield/`))).data);
     },
-
     async removeShield(j) {
-      const res = await axios.post(this.api(`/players/${j.id}/remove-shield/`));
-      Object.assign(j, res.data);
+      Object.assign(j, (await axios.post(this.api(`/players/${j.id}/remove-shield/`))).data);
     },
-
     async addMagazine(j) {
-      const res = await axios.post(this.api(`/players/${j.id}/add-magazine/`));
-      Object.assign(j, res.data);
+      Object.assign(j, (await axios.post(this.api(`/players/${j.id}/add-magazine/`))).data);
     },
-
     async removeMagazine(j) {
-      const res = await axios.post(this.api(`/players/${j.id}/remove-magazine/`));
-      Object.assign(j, res.data);
+      Object.assign(j, (await axios.post(this.api(`/players/${j.id}/remove-magazine/`))).data);
     },
-
     async eliminer(j) {
-      const res = await axios.post(this.api(`/players/${j.id}/kill/`));
-      Object.assign(j, res.data);
+      Object.assign(j, (await axios.post(this.api(`/players/${j.id}/kill/`))).data);
+      this.pushHistorique(`☠️ ${j.pseudo} éliminé`);
     },
-
     async reanimer(j) {
-      const res = await axios.post(this.api(`/players/${j.id}/resurrect/`));
-      Object.assign(j, res.data);
+      Object.assign(j, (await axios.post(this.api(`/players/${j.id}/resurrect/`))).data);
+      this.pushHistorique(`♻️ ${j.pseudo} réanimé par l’admin`);
     }
   }
 };
 </script>
+
+
 
 
 
@@ -628,8 +693,19 @@ export default {
   box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
 }
 
-.hud-carte:first-child {
+/* ================= HISTORIQUE ================= */
+
+.hud-historique {
+  flex: 1;                    /* prend l’espace entre infos et chat */
+  min-height: 160px;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-historique .feed {
   flex: 1;
+  overflow-y: auto;
 }
 
 /* titre */
@@ -781,21 +857,32 @@ export default {
 /* ========================================================= */
 
 /* Conteneur HUD retiré du flow */
+/* ================= HUD FIXE DROITE ================= */
+
 .hud-droite {
   position: fixed;
-  top: 24px;
+  top: 120px;                 /* sous ta barre menu */
   right: 24px;
   width: 22%;
-  height: calc(100vh - 48px);
-  pointer-events: none; /* évite de bloquer le scroll */
-}
-.hud-droite {
+  height: calc(100vh - 140px);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  z-index: 50;
   pointer-events: none;
 }
 
+/* Les cartes restent cliquables */
 .hud-droite .hud-carte {
   pointer-events: auto;
+  position: relative;         /* 🔥 IMPORTANT */
 }
+
+/* ================= HUD INFOS ================= */
+
+
 
 
 /* Les cartes restent interactives */
@@ -803,14 +890,6 @@ export default {
   pointer-events: auto;
 }
 
-/* ===== HISTORIQUE FIXE EN HAUT ===== */
-.hud-carte:not(.chat) {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 100%;
-  max-height: 45vh;
-}
 
 /* feed scrollable */
 .hud-carte:not(.chat) .feed {
@@ -818,15 +897,6 @@ export default {
   overflow-y: auto;
 }
 
-/* ===== CHAT FIXE EN BAS ===== */
-.hud-carte.chat {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 100%;
-  max-height: 40vh;
-  min-height: 140px;
-}
 
 /* messages scroll */
 .chat-messages {
@@ -1292,16 +1362,6 @@ export default {
   cursor: not-allowed;
 }
 
-.hud-droite {
-  position: fixed;
-  top: 80px;
-  right: 24px;
-  width: 22%;
-  height: calc(100vh - 100px);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
 
 /* espace entre munitions et réserve */
 .chargeurs-hud {
@@ -1486,6 +1546,140 @@ export default {
   filter: grayscale(0.6);
   box-shadow: none;
 }
+
+/* ================= HUD FIXE DROITE ================= */
+
+.hud-droite {
+  position: fixed;
+  top: 120px;              /* ⬅️ DESCEND LE HUD (ajuste si besoin) */
+  right: 24px;
+  width: 22%;
+  height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+  z-index: 50;
+}
+
+
+/* Les cartes restent interactives */
+.hud-droite .hud-carte {
+  pointer-events: auto;
+}
+
+
+/* lignes infos */
+.hud-ligne {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 4px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.hud-ligne span {
+  opacity: 0.6;
+}
+
+.hud-ligne strong {
+  font-weight: 800;
+}
+
+/* ================= CHAT ================= */
+
+.hud-carte.chat {
+  flex-shrink: 0;
+  min-height: 160px;
+  max-height: 32vh;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.chat-message.system {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.chat-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chat-input input {
+  flex: 1;
+  background: #111;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 10px;
+  color: white;
+  font-size: 13px;
+}
+
+.chat-input button {
+  border-radius: 12px;
+  border: none;
+  padding: 0 16px;
+  background: linear-gradient(90deg,#a855f7,#ec4899);
+  color: white;
+  font-weight: bold;
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+/* ===== HISTORIQUE ÉVÉNEMENTS ===== */
+
+.feed .event {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  font-family: monospace;
+  background: rgba(255,255,255,0.06);
+}
+
+/* Dégâts */
+.feed .event.hit {
+  border-left: 3px solid #facc15;
+}
+
+/* Mort */
+.feed .event.death {
+  border-left: 3px solid #ef4444;
+  color: #fecaca;
+}
+
+/* Résurrection */
+.feed .event.admin_revive {
+  border-left: 3px solid #22c55e;
+  color: #bbf7d0;
+}
+
+/* Admin */
+.feed .event.admin_action {
+  border-left: 3px solid #a855f7;
+}
+
+/* Système */
+.feed .event.system {
+  border-left: 3px solid #64748b;
+  opacity: 0.85;
+}
+
+/* valeur dégâts */
+.feed .value {
+  margin-left: 6px;
+  color: #facc15;
+  font-weight: bold;
+}
+
 
 
 </style>
