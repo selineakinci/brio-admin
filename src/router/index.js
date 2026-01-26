@@ -6,7 +6,7 @@ import ListeParties from "../pages/ListeParties.vue";
 import CreationPartie from "../pages/CreationPartie.vue";
 import FileAttentePartie from "../pages/FileAttentePartie.vue";
 import PartieEnCours from "../pages/PartieEnCours.vue";
-// import Scores from "../pages/Scores.vue"; // plus tard
+import TableauScores from "../pages/TableauScores.vue";
 
 // Layout
 import AdminLayout from "../layouts/AdminLayout.vue";
@@ -45,7 +45,6 @@ const routes = [
       },
 
       {
-        /* 🔥 CODE DE PARTIE DANS L’URL */
         path: "file-attente/:code",
         name: "FileAttentePartie",
         component: FileAttentePartie,
@@ -53,20 +52,19 @@ const routes = [
       },
 
       {
-        /* 🔥 CODE DE PARTIE DANS L’URL */
         path: "partie-en-cours/:code",
         name: "PartieEnCours",
         component: PartieEnCours,
         props: true,
       },
 
-      // 🔮 future page scores
-      // {
-      //   path: "scores/:code",
-      //   name: "Scores",
-      //   component: Scores,
-      //   props: true,
-      // },
+      /* ✅ PAGE SCORES */
+      {
+        path: "scores/:code",
+        name: "Scores",          // 🔥 ALIGNÉ AVEC ListeParties.vue
+        component: TableauScores,
+        props: true,
+      },
     ],
   },
 ];
