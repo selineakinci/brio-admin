@@ -35,6 +35,7 @@
 
       <!-- ================= JOUEURS ================= -->
       <div class="liste-joueurs">
+
         <div
           v-for="j in joueurs"
           :key="j.id"
@@ -45,81 +46,121 @@
           }"
         >
 
-          <!-- IDENTITÉ -->
+          <!-- ================= IDENTITÉ ================= -->
           <div class="zone zone-identite">
             <div class="zone-titre">JOUEUR</div>
 
-            <div class="nom" :style="{ color: j.team_color || '#fff' }">
+            <div class="nom">
               {{ j.pseudo }}
             </div>
 
             <div class="etat-central">
+
+              <!-- JOUEUR MORT -->
               <template v-if="!j.is_alive">
                 <div class="etat-text dead">ÉLIMINÉ</div>
               </template>
 
+              <!-- JOUEUR EN DANGER -->
               <template v-else-if="j.hp <= 25">
                 <div class="etat-circle danger"></div>
                 <div class="etat-text danger">DANGER</div>
               </template>
 
+              <!-- JOUEUR EN VIE -->
               <template v-else>
-                <div class="etat-circle alive"></div>
-                <div class="etat-text alive">EN VIE</div>
+                <div class="etat-vital">
+                  <span class="pulse-dot"></span>
+                  <span>EN VIE</span>
+                </div>
               </template>
+
             </div>
           </div>
-
-          <!-- STATS -->
-          <div class="zone zone-stats">
+          <!-- ================= STATS ================= -->
+          <div
+            class="zone zone-stats"
+            :class="{
+              'sans-munitions': (j.current_ammo ?? 0) === 0,
+              'sans-reserve': (j.magazines ?? 0) === 0
+            }"
+          >
             <div class="zone-titre">STATISTIQUES</div>
 
             <div class="stats-centered">
 
-              <!-- VIE -->
+              <!-- ❤️ VIE -->
               <div class="stat-block">
                 <div class="stat-icon">❤️</div>
                 <div class="barre big">
-                  <div class="vie" :style="{ width: j.hp + '%' }"></div>
+                  <div
+                    class="vie"
+                    :style="{ width: j.hp + '%' }"
+                  />
                   <span class="barre-text center">{{ j.hp }}%</span>
                 </div>
               </div>
 
-              <!-- BOUCLIER -->
+              <!-- 🛡️ BOUCLIER -->
               <div class="stat-block">
                 <div class="stat-icon">🛡️</div>
                 <div class="barre big">
-                  <div class="bouclier" :style="{ width: j.shield + '%' }"></div>
+                  <div
+                    class="bouclier"
+                    :style="{ width: j.shield + '%' }"
+                  />
                   <span class="barre-text center">{{ j.shield }}%</span>
                 </div>
               </div>
 
-              <!-- MUNITIONS -->
+              <!-- 🔫 MUNITIONS -->
               <div class="stat-block munitions-block">
-                <div class="weapon-icon">🔫</div>
+                <div class="weapon-icon">
+                  {{ j.weapon_name ?? "🔫" }}
+                </div>
 
                 <div class="ammo-capsules">
                   <span
-                    v-for="n in (j.magazines ?? 0)"
+                    v-for="n in 30"
                     :key="n"
-                    class="active"
+                    :class="{ active: n <= (j.current_ammo ?? 0) }"
                   />
                 </div>
 
                 <div class="ammo-count">
-                  {{ j.magazines ?? 0 }}
+                  {{ j.current_ammo ?? 0 }} / 30
+                </div>
+              </div>
+
+              <!-- 🔋 RÉSERVE DE CHARGEURS -->
+              <div
+                class="chargeurs-hud"
+                v-if="(j.magazines ?? 0) > 0"
+              >
+                <div class="chargeurs-info">
+                  <span class="ammo-dot"></span>
+                  <span class="chargeurs-label">RÉSERVE</span>
+                </div>
+
+                <div class="chargeurs-rail">
+                  <div
+                    v-for="n in j.magazines"
+                    :key="n"
+                    class="chargeur-arme"
+                  />
                 </div>
               </div>
 
             </div>
           </div>
 
-          <!-- ACTIONS ADMIN -->
+          <!-- ================= ACTIONS ADMIN ================= -->
           <div class="zone zone-actions">
             <div class="zone-titre">ACTIONS ADMIN</div>
 
             <template v-if="j.is_alive">
 
+              <!-- ❤️ VIE -->
               <div class="admin-section">
                 <div class="admin-label">❤️ VIE</div>
                 <div class="admin-life-control">
@@ -131,6 +172,7 @@
                 </div>
               </div>
 
+              <!-- 🛡️ BOUCLIER -->
               <div class="admin-section">
                 <div class="admin-label">🛡️ BOUCLIER</div>
                 <div class="admin-life-control">
@@ -142,49 +184,71 @@
                 </div>
               </div>
 
+              <!-- 🔫 CHARGEURS -->
               <div class="admin-section">
                 <div class="admin-label">🔫 CHARGEURS</div>
                 <div class="admin-life-control">
-                  <button class="btn-admin minus" @click="removeMagazine(j)">−</button>
-                  <div class="admin-life-bar">
-                    <div class="admin-life-fill munitions"
-                         :style="{ width: ((j.magazines ?? 0) * 10) + '%' }" />
+                  <button
+                    class="btn-admin minus"
+                    @click="removeMagazine(j)"
+                    :disabled="(j.magazines ?? 0) <= 0"
+                  >
+                    −
+                  </button>
+
+                  <div class="mag-count">
+                    {{ j.magazines ?? 0 }}
                   </div>
-                  <button class="btn-admin plus" @click="addMagazine(j)">+</button>
+
+                  <button
+                    class="btn-admin plus"
+                    @click="addMagazine(j)"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
 
+              <!-- ☠️ ÉLIMINER -->
               <div class="admin-section critical">
-                <button class="btn-admin kill full" @click="eliminer(j)">
-                  ☠️ ÉLIMINER LE JOUEUR
+                <button
+                  class="btn-admin kill full"
+                  @click="eliminer(j)"
+                >
+                  ☠️ ÉLIMINER
                 </button>
               </div>
 
             </template>
 
+            <!-- JOUEUR MORT -->
             <template v-else>
-              <div class="admin-section critical">
-                <button class="btn-admin respawn full" @click="reanimer(j)">
+              <div class="admin-section critical admin-center">
+                <button
+                  class="btn-admin respawn full"
+                  @click="reanimer(j)"
+                >
                   ♻️ RÉANIMER
                 </button>
               </div>
             </template>
+
           </div>
 
-          <!-- SCORE -->
+          <!-- ================= SCORE ================= -->
           <div class="zone zone-score">
             <div class="zone-titre">SCORE</div>
-            <div class="score-center">☠️ {{ j.kills }}</div>
+            <div class="kills">☠️ {{ j.kills }}</div>
           </div>
 
         </div>
       </div>
     </div>
 
-    <!-- ================= HUD DROIT FIXE ================= -->
+    <!-- ================= HUD DROIT ================= -->
     <div class="hud-droite">
 
-      <!-- INFOS PARTIE -->
+      <!-- INFOS -->
       <div class="hud-carte hud-infos">
         <div class="hud-titre">INFOS PARTIE</div>
 
@@ -253,7 +317,7 @@
         </div>
 
         <div class="chat-input">
-          <input disabled placeholder="Message admin…" />
+          <input type="text" placeholder="Message admin…" disabled />
           <button disabled>➤</button>
         </div>
       </div>
