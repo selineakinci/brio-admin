@@ -35,7 +35,6 @@
 
       <!-- ================= JOUEURS ================= -->
       <div class="liste-joueurs">
-
         <div
           v-for="j in joueurs"
           :key="j.id"
@@ -46,38 +45,31 @@
           }"
         >
 
-          <!-- ================= IDENTITÉ ================= -->
+          <!-- IDENTITÉ -->
           <div class="zone zone-identite">
             <div class="zone-titre">JOUEUR</div>
-
-            <div class="nom">
-              {{ j.pseudo }}
-            </div>
+            <div class="nom">{{ j.pseudo }}</div>
 
             <div class="etat-central">
-
-              <!-- JOUEUR MORT -->
               <template v-if="!j.is_alive">
                 <div class="etat-text dead">ÉLIMINÉ</div>
               </template>
 
-              <!-- JOUEUR EN DANGER -->
               <template v-else-if="j.hp <= 25">
                 <div class="etat-circle danger"></div>
                 <div class="etat-text danger">DANGER</div>
               </template>
 
-              <!-- JOUEUR EN VIE -->
               <template v-else>
                 <div class="etat-vital">
                   <span class="pulse-dot"></span>
                   <span>EN VIE</span>
                 </div>
               </template>
-
             </div>
           </div>
-          <!-- ================= STATS ================= -->
+
+          <!-- STATS -->
           <div
             class="zone zone-stats"
             :class="{
@@ -88,37 +80,24 @@
             <div class="zone-titre">STATISTIQUES</div>
 
             <div class="stats-centered">
-
-              <!-- ❤️ VIE -->
               <div class="stat-block">
                 <div class="stat-icon">❤️</div>
                 <div class="barre big">
-                  <div
-                    class="vie"
-                    :style="{ width: j.hp + '%' }"
-                  />
+                  <div class="vie" :style="{ width: j.hp + '%' }" />
                   <span class="barre-text center">{{ j.hp }}%</span>
                 </div>
               </div>
 
-              <!-- 🛡️ BOUCLIER -->
               <div class="stat-block">
                 <div class="stat-icon">🛡️</div>
                 <div class="barre big">
-                  <div
-                    class="bouclier"
-                    :style="{ width: j.shield + '%' }"
-                  />
+                  <div class="bouclier" :style="{ width: j.shield + '%' }" />
                   <span class="barre-text center">{{ j.shield }}%</span>
                 </div>
               </div>
 
-              <!-- 🔫 MUNITIONS -->
               <div class="stat-block munitions-block">
-                <div class="weapon-icon">
-                  {{ j.weapon_name ?? "🔫" }}
-                </div>
-
+                <div class="weapon-icon">{{ j.weapon_name ?? "🔫" }}</div>
                 <div class="ammo-capsules">
                   <span
                     v-for="n in 30"
@@ -126,13 +105,11 @@
                     :class="{ active: n <= (j.current_ammo ?? 0) }"
                   />
                 </div>
-
                 <div class="ammo-count">
                   {{ j.current_ammo ?? 0 }} / 30
                 </div>
               </div>
 
-              <!-- 🔋 RÉSERVE DE CHARGEURS -->
               <div
                 class="chargeurs-hud"
                 v-if="(j.magazines ?? 0) > 0"
@@ -141,7 +118,6 @@
                   <span class="ammo-dot"></span>
                   <span class="chargeurs-label">RÉSERVE</span>
                 </div>
-
                 <div class="chargeurs-rail">
                   <div
                     v-for="n in j.magazines"
@@ -150,17 +126,14 @@
                   />
                 </div>
               </div>
-
             </div>
           </div>
 
-          <!-- ================= ACTIONS ADMIN ================= -->
+          <!-- ACTIONS ADMIN -->
           <div class="zone zone-actions">
             <div class="zone-titre">ACTIONS ADMIN</div>
 
             <template v-if="j.is_alive">
-
-              <!-- ❤️ VIE -->
               <div class="admin-section">
                 <div class="admin-label">❤️ VIE</div>
                 <div class="admin-life-control">
@@ -172,7 +145,6 @@
                 </div>
               </div>
 
-              <!-- 🛡️ BOUCLIER -->
               <div class="admin-section">
                 <div class="admin-label">🛡️ BOUCLIER</div>
                 <div class="admin-life-control">
@@ -184,7 +156,6 @@
                 </div>
               </div>
 
-              <!-- 🔫 CHARGEURS -->
               <div class="admin-section">
                 <div class="admin-label">🔫 CHARGEURS</div>
                 <div class="admin-life-control">
@@ -192,50 +163,29 @@
                     class="btn-admin minus"
                     @click="removeMagazine(j)"
                     :disabled="(j.magazines ?? 0) <= 0"
-                  >
-                    −
-                  </button>
-
-                  <div class="mag-count">
-                    {{ j.magazines ?? 0 }}
-                  </div>
-
-                  <button
-                    class="btn-admin plus"
-                    @click="addMagazine(j)"
-                  >
-                    +
-                  </button>
+                  >−</button>
+                  <div class="mag-count">{{ j.magazines ?? 0 }}</div>
+                  <button class="btn-admin plus" @click="addMagazine(j)">+</button>
                 </div>
               </div>
 
-              <!-- ☠️ ÉLIMINER -->
               <div class="admin-section critical">
-                <button
-                  class="btn-admin kill full"
-                  @click="eliminer(j)"
-                >
+                <button class="btn-admin kill full" @click="eliminer(j)">
                   ☠️ ÉLIMINER
                 </button>
               </div>
-
             </template>
 
-            <!-- JOUEUR MORT -->
             <template v-else>
               <div class="admin-section critical admin-center">
-                <button
-                  class="btn-admin respawn full"
-                  @click="reanimer(j)"
-                >
+                <button class="btn-admin respawn full" @click="reanimer(j)">
                   ♻️ RÉANIMER
                 </button>
               </div>
             </template>
-
           </div>
 
-          <!-- ================= SCORE ================= -->
+          <!-- SCORE -->
           <div class="zone zone-score">
             <div class="zone-titre">SCORE</div>
             <div class="kills">☠️ {{ j.kills }}</div>
@@ -251,57 +201,22 @@
       <!-- INFOS -->
       <div class="hud-carte hud-infos">
         <div class="hud-titre">INFOS PARTIE</div>
-
-        <div class="hud-ligne">
-          <span>⏱ Temps</span>
-          <strong>{{ tempsAffiche }}</strong>
-        </div>
-
-        <div class="hud-ligne">
-          <span>🎮 Statut</span>
-          <strong>{{ partie.status }}</strong>
-        </div>
-
-        <div class="hud-ligne">
-          <span>👥 Joueurs</span>
-          <strong>{{ joueurs.length }}</strong>
-        </div>
+        <div class="hud-ligne"><span>⏱ Temps</span><strong>{{ tempsAffiche }}</strong></div>
+        <div class="hud-ligne"><span>🎮 Statut</span><strong>{{ partie.status }}</strong></div>
+        <div class="hud-ligne"><span>👥 Joueurs</span><strong>{{ joueurs.length }}</strong></div>
       </div>
 
       <!-- HISTORIQUE -->
       <div class="hud-carte hud-historique">
         <div class="hud-titre">HISTORIQUE</div>
-
-        <div class="feed">
+        <div class="feed" ref="historiqueFeed">
           <div
-            v-for="(e, i) in historique"
-            :key="i"
+            v-for="e in historique"
+            :key="e.id"
             class="event"
             :class="e.type"
           >
-            <template v-if="e.type === 'hit'">
-              🔫 <strong>{{ e.from }}</strong> touche
-              <strong>{{ e.to }}</strong>
-              <span class="value">−{{ e.value }}%</span>
-            </template>
-
-            <template v-else-if="e.type === 'death'">
-              ☠️ <strong>{{ e.player }}</strong>
-              éliminé par <strong>{{ e.by }}</strong>
-            </template>
-
-            <template v-else-if="e.type === 'admin_revive'">
-              ♻️ <strong>{{ e.player }}</strong>
-              ressuscité par l’admin
-            </template>
-
-            <template v-else-if="e.type === 'admin_action'">
-              🛠️ {{ e.message }}
-            </template>
-
-            <template v-else>
-              ⚙️ {{ e.message }}
-            </template>
+            {{ e.message }}
           </div>
         </div>
       </div>
@@ -309,13 +224,9 @@
       <!-- CHAT -->
       <div class="hud-carte chat">
         <div class="hud-titre">CHAT</div>
-
         <div class="chat-messages">
-          <div class="chat-message system">
-            Connexion WebSocket…
-          </div>
+          <div class="chat-message system">Connexion WebSocket…</div>
         </div>
-
         <div class="chat-input">
           <input type="text" placeholder="Message admin…" disabled />
           <button disabled>➤</button>
@@ -400,32 +311,29 @@ export default {
         });
       });
 
-      // Réception de l'état admin
-      this.socket.on("admin_game_state", (state) => {
+      this.socket.on("admin_game_state", async (state) => {
         console.log("📡 admin_game_state", state);
 
-        /*
-          Structure attendue (exemple) :
-          {
-            game: { status, remaining_time, ... }
-            players: [...]
-            history: [...]
-          }
-        */
-
-        if (state.game) {
-          this.partie.status = state.game.status;
-          this.temps = state.game.remaining_time;
+        if (state.timing) {
+          this.partie.status = state.timing.status;
+          this.temps = state.timing.remaining_seconds;
         }
 
         if (state.players) {
           this.joueurs = state.players;
         }
 
-        if (state.history) {
-          this.historique = state.history;
+        if (state.recent_events) {
+          this.historique = this.mapRecentEvents(state.recent_events);
+
+          // 🔥 ATTEND que le DOM soit vraiment à jour
+          await this.$nextTick();
+          this.forceScrollHistorique();
         }
       });
+
+
+
 
       // Erreurs WS
       this.socket.on("error", (err) => {
@@ -474,30 +382,20 @@ export default {
     async pausePartie() {
       await axios.post(this.api("/pause/"));
       this.partie.status = "paused";
-      this.pushHistorique("⏸ Partie mise en pause par l'admin");
     },
 
     async reprendrePartie() {
       await axios.post(this.api("/resume/"));
       this.partie.status = "running";
-      this.pushHistorique("▶ Partie reprise par l'admin");
     },
 
     async terminerPartie() {
       await axios.post(this.api("/end/"), { reason: "admin" });
       this.partie.status = "finished";
-      this.pushHistorique("⛔ Partie terminée par l'admin");
       this.$router.push(`/scores/${this.partie.code}`);
     },
 
-    /* ===== HISTORIQUE ===== */
 
-    pushHistorique(message) {
-      this.historique.unshift({
-        message,
-        ts: Date.now()
-      });
-    },
 
     /* ===== ACTIONS JOUEURS ===== */
 
@@ -526,15 +424,146 @@ export default {
     async reanimer(j) {
       Object.assign(j, (await axios.post(this.api(`/players/${j.id}/resurrect/`))).data);
       this.pushHistorique(`♻️ ${j.pseudo} réanimé par l’admin`);
-    }
+    },
+
+
+        applyKill(event) {
+      const { killer_id, victim_id } = event.metadata;
+
+      this.joueurs = this.joueurs.map(j => {
+        if (j.id === killer_id) {
+          return { ...j, kills: (j.kills ?? 0) + 1 };
+        }
+        if (j.id === victim_id) {
+          return { ...j, is_alive: false, hp: 0 };
+        }
+        return j;
+      });
+    },
+
+    applyGameState(event) {
+      if (event.event_type === "game_pause") this.partie.status = "paused";
+      if (event.event_type === "game_resume") this.partie.status = "running";
+      if (event.event_type === "game_end") this.partie.status = "finished";
+    },
+
+    applyAdminStat(event) {
+      const playerId = event.player_ids?.[0];
+      if (!playerId) return;
+
+      this.joueurs = this.joueurs.map(j => {
+        if (j.id !== playerId) return j;
+        return { ...j, ...event.metadata };
+      });
+    },
+
+    applyAdminKill(event) {
+      const playerId = event.player_ids?.[0];
+
+      this.joueurs = this.joueurs.map(j =>
+        j.id === playerId
+          ? { ...j, is_alive: false, hp: 0 }
+          : j
+      );
+    },
+    applyAdminResurrect(event) {
+      const playerId = event.player_ids?.[0];
+
+      this.joueurs = this.joueurs.map(j =>
+        j.id === playerId
+          ? { ...j, is_alive: true, hp: 100, shield: 0 }
+          : j
+      );
+    },
+
+    mapRecentEvents(events) {
+      return events
+        .slice()                 // on copie
+        .reverse()               // plus ancien → plus récent
+        .map(e => this.mapEvent(e));
+    },
+
+    mapEvent(e) {
+      const emojiByType = {
+        kill: "☠️",
+        admin_kill: "☠️",
+        admin_hp: "❤️",
+        admin_shield: "🛡️",
+        admin_magazine: "🔫",
+        admin_resurrect: "♻️",
+        game_start: "🎮",
+        game_pause: "⏸️",
+        game_resume: "▶️",
+        game_end: "⛔",
+        respawn: "▶️",
+      };
+
+      switch (e.event_type) {
+
+        /* ===== KILL ===== */
+        case "kill":
+        case "admin_kill":
+          return {
+            id: e.id,
+            type: "death",
+            message: `${emojiByType[e.event_type]} ${e.message}`,
+            ts: e.timestamp
+          };
+
+        /* ===== ADMIN ACTIONS ===== */
+        case "admin_hp":
+        case "admin_shield":
+        case "admin_magazine":
+          return {
+            id: e.id,
+            type: "admin_action",
+            message: `${emojiByType[e.event_type]} ${e.message}`,
+            ts: e.timestamp
+          };
+
+        case "admin_resurrect":
+          return {
+            id: e.id,
+            type: "admin_revive",
+            message: `${emojiByType[e.event_type]} ${e.message}`,
+            ts: e.timestamp
+          };
+
+        /* ===== GAME FLOW ===== */
+        case "game_start":
+        case "game_pause":
+        case "game_resume":
+        case "game_end":
+        case "respawn":
+          return {
+            id: e.id,
+            type: "system",
+            message: `${emojiByType[e.event_type]} ${e.message}`,
+            ts: e.timestamp
+          };
+
+        /* ===== FALLBACK ===== */
+        default:
+          return {
+            id: e.id,
+            type: "system",
+            message: `⚙️ ${e.message ?? "Événement"}`,
+            ts: e.timestamp
+          };
+      }
+    },
+
+    forceScrollHistorique() {
+  const feed = this.$refs.historiqueFeed;
+  if (!feed) return;
+
+  feed.scrollTop = feed.scrollHeight;
+},
+
+
   }
 };
 </script>
-
-
-
-
-
 
 
 
