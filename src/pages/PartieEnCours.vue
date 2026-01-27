@@ -39,52 +39,139 @@
           v-for="j in joueurs"
           :key="j.id"
           class="carte-joueur"
-          :class="{ mort: !j.is_alive, danger: j.is_alive && j.hp <= 25 }"
+          :class="{
+            mort: !j.is_alive,
+            danger: j.is_alive && j.hp <= 25
+          }"
         >
 
+          <!-- IDENTITÉ -->
           <div class="zone zone-identite">
             <div class="zone-titre">JOUEUR</div>
-            <div class="nom">{{ j.pseudo }}</div>
+
+            <div class="nom" :style="{ color: j.team_color || '#fff' }">
+              {{ j.pseudo }}
+            </div>
 
             <div class="etat-central">
-              <div v-if="!j.is_alive" class="etat-text dead">ÉLIMINÉ</div>
-              <div v-else-if="j.hp <= 25" class="etat-text danger">DANGER</div>
-              <div v-else class="etat-text alive">EN VIE</div>
+              <template v-if="!j.is_alive">
+                <div class="etat-text dead">ÉLIMINÉ</div>
+              </template>
+
+              <template v-else-if="j.hp <= 25">
+                <div class="etat-circle danger"></div>
+                <div class="etat-text danger">DANGER</div>
+              </template>
+
+              <template v-else>
+                <div class="etat-circle alive"></div>
+                <div class="etat-text alive">EN VIE</div>
+              </template>
             </div>
           </div>
 
+          <!-- STATS -->
           <div class="zone zone-stats">
             <div class="zone-titre">STATISTIQUES</div>
-            <div class="stats-contenu">
-              <div class="stat-block">❤️ {{ j.hp }}%</div>
-              <div class="stat-block">🛡️ {{ j.shield }}%</div>
-              <div class="stat-block">🔫 {{ j.magazines ?? 0 }}</div>
+
+            <div class="stats-centered">
+
+              <!-- VIE -->
+              <div class="stat-block">
+                <div class="stat-icon">❤️</div>
+                <div class="barre big">
+                  <div class="vie" :style="{ width: j.hp + '%' }"></div>
+                  <span class="barre-text center">{{ j.hp }}%</span>
+                </div>
+              </div>
+
+              <!-- BOUCLIER -->
+              <div class="stat-block">
+                <div class="stat-icon">🛡️</div>
+                <div class="barre big">
+                  <div class="bouclier" :style="{ width: j.shield + '%' }"></div>
+                  <span class="barre-text center">{{ j.shield }}%</span>
+                </div>
+              </div>
+
+              <!-- MUNITIONS -->
+              <div class="stat-block munitions-block">
+                <div class="weapon-icon">🔫</div>
+
+                <div class="ammo-capsules">
+                  <span
+                    v-for="n in (j.magazines ?? 0)"
+                    :key="n"
+                    class="active"
+                  />
+                </div>
+
+                <div class="ammo-count">
+                  {{ j.magazines ?? 0 }}
+                </div>
+              </div>
+
             </div>
           </div>
 
+          <!-- ACTIONS ADMIN -->
           <div class="zone zone-actions">
             <div class="zone-titre">ACTIONS ADMIN</div>
 
             <template v-if="j.is_alive">
-              <button @click="addHp(j)">+ Vie</button>
-              <button @click="removeHp(j)">− Vie</button>
-              <button @click="addShield(j)">+ Bouclier</button>
-              <button @click="removeShield(j)">− Bouclier</button>
-              <button @click="addMagazine(j)">+ Chargeur</button>
-              <button @click="removeMagazine(j)">− Chargeur</button>
 
-              <button class="btn-admin kill" @click="eliminer(j)">
-                ☠️ ÉLIMINER
-              </button>
+              <div class="admin-section">
+                <div class="admin-label">❤️ VIE</div>
+                <div class="admin-life-control">
+                  <button class="btn-admin minus" @click="removeHp(j)">−</button>
+                  <div class="admin-life-bar">
+                    <div class="admin-life-fill vie" :style="{ width: j.hp + '%' }" />
+                  </div>
+                  <button class="btn-admin plus" @click="addHp(j)">+</button>
+                </div>
+              </div>
+
+              <div class="admin-section">
+                <div class="admin-label">🛡️ BOUCLIER</div>
+                <div class="admin-life-control">
+                  <button class="btn-admin minus" @click="removeShield(j)">−</button>
+                  <div class="admin-life-bar">
+                    <div class="admin-life-fill bouclier" :style="{ width: j.shield + '%' }" />
+                  </div>
+                  <button class="btn-admin plus" @click="addShield(j)">+</button>
+                </div>
+              </div>
+
+              <div class="admin-section">
+                <div class="admin-label">🔫 CHARGEURS</div>
+                <div class="admin-life-control">
+                  <button class="btn-admin minus" @click="removeMagazine(j)">−</button>
+                  <div class="admin-life-bar">
+                    <div class="admin-life-fill munitions"
+                         :style="{ width: ((j.magazines ?? 0) * 10) + '%' }" />
+                  </div>
+                  <button class="btn-admin plus" @click="addMagazine(j)">+</button>
+                </div>
+              </div>
+
+              <div class="admin-section critical">
+                <button class="btn-admin kill full" @click="eliminer(j)">
+                  ☠️ ÉLIMINER LE JOUEUR
+                </button>
+              </div>
+
             </template>
 
             <template v-else>
-              <button class="btn-admin respawn" @click="reanimer(j)">
-                ♻️ RÉANIMER
-              </button>
+              <div class="admin-section critical">
+                <button class="btn-admin respawn full" @click="reanimer(j)">
+                  ♻️ RÉANIMER
+                </button>
+              </div>
             </template>
           </div>
 
+          <!-- SCORE -->
           <div class="zone zone-score">
             <div class="zone-titre">SCORE</div>
             <div class="score-center">☠️ {{ j.kills }}</div>
@@ -97,7 +184,7 @@
     <!-- ================= HUD DROIT FIXE ================= -->
     <div class="hud-droite">
 
-      <!-- ===== HUD INFOS (HAUT DROITE) ===== -->
+      <!-- INFOS PARTIE -->
       <div class="hud-carte hud-infos">
         <div class="hud-titre">INFOS PARTIE</div>
 
@@ -117,9 +204,9 @@
         </div>
       </div>
 
-      <!-- ===== HISTORIQUE (JUSTE EN DESSOUS) ===== -->
+      <!-- HISTORIQUE -->
       <div class="hud-carte hud-historique">
-        <div class="hud-titre">HISTORIQUE DE LA PARTIE</div>
+        <div class="hud-titre">HISTORIQUE</div>
 
         <div class="feed">
           <div
@@ -128,31 +215,26 @@
             class="event"
             :class="e.type"
           >
-            <!-- TOUCHÉ -->
             <template v-if="e.type === 'hit'">
               🔫 <strong>{{ e.from }}</strong> touche
               <strong>{{ e.to }}</strong>
               <span class="value">−{{ e.value }}%</span>
             </template>
 
-            <!-- MORT -->
             <template v-else-if="e.type === 'death'">
               ☠️ <strong>{{ e.player }}</strong>
               éliminé par <strong>{{ e.by }}</strong>
             </template>
 
-            <!-- RÉSURRECTION ADMIN -->
             <template v-else-if="e.type === 'admin_revive'">
               ♻️ <strong>{{ e.player }}</strong>
               ressuscité par l’admin
             </template>
 
-            <!-- ACTION ADMIN -->
             <template v-else-if="e.type === 'admin_action'">
               🛠️ {{ e.message }}
             </template>
 
-            <!-- SYSTÈME -->
             <template v-else>
               ⚙️ {{ e.message }}
             </template>
@@ -160,7 +242,7 @@
         </div>
       </div>
 
-      <!-- ===== CHAT (BAS DROITE FIXE) ===== -->
+      <!-- CHAT -->
       <div class="hud-carte chat">
         <div class="hud-titre">CHAT</div>
 
@@ -171,19 +253,16 @@
         </div>
 
         <div class="chat-input">
-          <input
-            type="text"
-            placeholder="Message admin…"
-            disabled
-          />
+          <input disabled placeholder="Message admin…" />
           <button disabled>➤</button>
         </div>
       </div>
 
     </div>
-
   </div>
 </template>
+
+
 
 
 
