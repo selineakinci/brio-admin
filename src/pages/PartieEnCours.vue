@@ -189,12 +189,16 @@
 
 <script>
 import axios from "axios";
+import { io } from "socket.io-client";
+
 
 export default {
   name: "PartieEnCours",
 
   data() {
     return {
+      socket: null,
+
       partie: {
         nom: "Chargement…",
         code: null,
@@ -205,6 +209,7 @@ export default {
       historique: []
     };
   },
+
 
   computed: {
     codePartie() {
@@ -218,22 +223,85 @@ export default {
     }
   },
 
-  mounted() {
-    if (!this.codePartie) {
-      console.error("Code de partie manquant");
-      return;
-    }
-
-    this.partie.code = this.codePartie;
-    this.chargerPartie();
-    this.chargerJoueurs();
-
-    setInterval(() => {
-      if (this.partie.status === "running" && this.temps > 0) {
-        this.temps--;
+    mounted() {
+      if (!this.codePartie) {
+        console.error("Code de partie manquant");
+        return;
       }
-    }, 1000);
-  },
+
+      this.partie.code = this.codePartie;
+      this.chargerPartie();
+      this.chargerJoueurs();
+
+      // ⏱️ Timer local
+      setInterval(() => {
+        if (this.partie.status === "running" && this.temps > 0) {
+          this.temps--;
+        }
+      }, 1000);
+
+      /* ================= SOCKET.IO ================= */
+
+      this.socket = io(import.meta.env.VITE_API_WS_URL ?? "/", {
+        transports: ["websocket"],
+        withCredentials: true,
+      });
+
+      // Connexion OK
+      this.socket.on("connect", () => {
+        console.log("🟢 WS connecté :", this.socket.id);
+
+        // Admin rejoint la room
+        this.socket.emit("admin_join_game", {
+          game_code: this.partie.code,
+        });
+      });
+
+      // Réception de l'état admin
+      this.socket.on("admin_game_state", (state) => {
+        console.log("📡 admin_game_state", state);
+
+        /*
+          Structure attendue (exemple) :
+          {
+            game: { status, remaining_time, ... }
+            players: [...]
+            history: [...]
+          }
+        */
+
+        if (state.game) {
+          this.partie.status = state.game.status;
+          this.temps = state.game.remaining_time;
+        }
+
+        if (state.players) {
+          this.joueurs = state.players;
+        }
+
+        if (state.history) {
+          this.historique = state.history;
+        }
+      });
+
+      // Erreurs WS
+      this.socket.on("error", (err) => {
+        console.error("❌ WS error", err);
+      });
+
+      this.socket.on("disconnect", () => {
+        console.log("🔴 WS déconnecté");
+      });
+    },
+
+
+    beforeUnmount() {
+      if (this.socket) {
+        this.socket.disconnect();
+        this.socket = null;
+      }
+    },
+
 
   methods: {
     api(path) {
@@ -276,7 +344,7 @@ export default {
       await axios.post(this.api("/end/"), { reason: "admin" });
       this.partie.status = "finished";
       this.pushHistorique("⛔ Partie terminée par l'admin");
-      this.$router.push("/parties");
+      this.$router.push(`/scores/${this.partie.code}`);
     },
 
     /* ===== HISTORIQUE ===== */

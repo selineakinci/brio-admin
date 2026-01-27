@@ -105,8 +105,8 @@ export default {
     // 🔹 Chargement initial complet
     await this.chargerJoueurs();
 
-    // 🔹 Polling léger (uniquement prêt / pas prêt)
-    this.pollingId = setInterval(this.pollingEtatEquipements, 2000);
+    // 🔁 Polling COMPLET joueurs
+    this.pollingId = setInterval(this.chargerJoueurs, 2000);
   },
 
   beforeUnmount() {
@@ -153,11 +153,10 @@ export default {
       }
     },
 
-    lancerPartie() {
+    async lancerPartie() {
       if (!this.tousPrets) return;
 
-      // 🔮 futur endpoint backend :
-      // await axios.post(`/api/games/${this.codePartie}/start/`);
+      await axios.post(`/api/games/${this.codePartie}/start/`);
 
       this.$router.push({
         name: "PartieEnCours",
