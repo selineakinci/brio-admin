@@ -1,16 +1,13 @@
 <template>
   <div class="page-parties">
-    <!-- CRÉER UNE PARTIE -->
+
+    <!-- CRÉER -->
     <div class="creer-partie">
-      <button
-        class="bouton-plus"
-        @click.stop="allerCreerPartie"
-        aria-label="Créer une partie"
-      ></button>
+      <button class="bouton-plus" @click.stop="allerCreerPartie" />
       <span class="creer-texte">Créer une partie</span>
     </div>
 
-    <!-- LISTE DES PARTIES -->
+    <!-- LISTE -->
     <div class="liste-parties">
       <div
         class="carte carte-partie"
@@ -18,29 +15,30 @@
         :key="partie.id"
         @click="allerVersPartie(partie)"
       >
-        <!-- STATUT -->
         <div class="statut" :class="statusClass(partie.status)">
           {{ statusLabel(partie.status) }}
         </div>
 
-        <!-- INFOS -->
         <div class="centre">
           <div class="nom-partie">{{ partie.nom }}</div>
           <div class="infos">
             <div><strong>Joueurs max</strong> : {{ partie.max_players }}</div>
-            <div><strong>Temps restant</strong> : {{ partie.temps_restant }}</div>
+            <div><strong>Temps</strong> : {{ partie.temps_affiche }}</div>
           </div>
         </div>
 
-        <!-- QR (ne déclenche PAS la navigation) -->
         <div class="qr" @click.stop>
-          <img :src="partie.qrCode" alt="QR Code" />
+          <img :src="partie.qrCode" />
           <span class="qr-label">Scanner pour rejoindre</span>
         </div>
       </div>
     </div>
+
   </div>
 </template>
+
+
+
 
 <script>
 import QRCode from "qrcode";
@@ -64,92 +62,80 @@ export default {
     },
 
     allerVersPartie(partie) {
-      if (!partie.code) {
-        console.error("❌ Code de partie manquant", partie);
-        return;
-      }
+      const routes = {
+        waiting: "FileAttentePartie",
+        running: "PartieEnCours",
+        paused: "PartieEnCours",
+        finished: "Scores",
+      };
 
-      if (partie.status === "waiting") {
-        this.$router.push({
-          name: "FileAttentePartie",
-          params: { code: partie.code },
-        });
-      } 
-      else if (partie.status === "running") {
-        this.$router.push({
-          name: "PartieEnCours",
-          params: { code: partie.code },
-        });
-      } 
-      else if (partie.status === "finished") {
-        this.$router.push({
-          name: "Scores",
-          params: { code: partie.code },
-        });
-      }
+      this.$router.push({
+        name: routes[partie.status],
+        params: { code: partie.code },
+      });
     },
 
     async chargerParties() {
-      try {
-        const response = await fetch("/api/games/");
-        const games = await response.json();
+      const res = await fetch("/api/games/");
+      const games = await res.json();
 
-        this.parties = await Promise.all(
-          games.map(async (game) => {
-            const qrCode = await QRCode.toDataURL(game.code, {
-              width: 140,
-              margin: 1,
-            });
+      this.parties = await Promise.all(
+        games.map(async (g) => {
+          const qrCode = await QRCode.toDataURL(g.code, { width: 140 });
 
-            return {
-              id: game.id,
-              code: game.code, // 🔥 IMPORTANT
-              nom: game.name,
-              max_players: game.max_players,
-              status: game.status,
-              duration_seconds: game.duration_seconds,
-              temps_restant: this.formatTemps(game.duration_seconds),
-              qrCode,
-            };
-          })
-        );
-      } catch (error) {
-        console.error("Erreur chargement parties :", error);
-      }
-    },
-
-    formatTemps(secondes) {
-      const h = Math.floor(secondes / 3600);
-      const m = Math.floor((secondes % 3600) / 60);
-      const s = Math.floor(secondes % 60);
-
-      return (
-        `${String(h).padStart(2, "0")}:` +
-        `${String(m).padStart(2, "0")}:` +
-        `${String(s).padStart(2, "0")}`
+          return {
+            id: g.id,
+            code: g.code,
+            nom: g.name,
+            max_players: g.max_players,
+            status: g.status,
+            temps_affiche: this.computeTemps(g),
+            qrCode,
+          };
+        })
       );
     },
 
-    statusLabel(status) {
-      return {
-        waiting: "En attente",
-        running: "Partie en cours",
-        paused: "En pause",
-        finished: "Partie terminée",
-      }[status];
+    computeTemps(game) {
+      if (game.status === "finished") {
+        return `Partie a duré ${this.formatTemps(game.elapsed_seconds)}`;
+      }
+
+      if (game.status === "running" || game.status === "paused") {
+        return this.formatTemps(game.remaining_seconds);
+      }
+
+      return this.formatTemps(game.duration_seconds);
     },
 
-    statusClass(status) {
+    formatTemps(sec = 0) {
+      const m = String(Math.floor(sec / 60)).padStart(2, "0");
+      const s = String(sec % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    },
+
+    statusLabel(s) {
+      return {
+        waiting: "En attente",
+        running: "En cours",
+        paused: "En pause",
+        finished: "Terminée",
+      }[s];
+    },
+
+    statusClass(s) {
       return {
         waiting: "attente",
         running: "en-cours",
         paused: "pause",
         finished: "terminee",
-      }[status];
+      }[s];
     },
   },
 };
 </script>
+
+
 
 
 

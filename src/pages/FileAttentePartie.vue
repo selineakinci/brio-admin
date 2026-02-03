@@ -2,7 +2,6 @@
   <div class="page-file-attente">
     <div class="carte carte-attente">
 
-      <!-- EN-TÊTE -->
       <div class="entete">
         <h1>{{ partie.nom }}</h1>
         <span class="etat">
@@ -10,52 +9,49 @@
         </span>
       </div>
 
-      <!-- QR CODE (même design que ListeParties) -->
-      <div class="qr" v-if="qrCode" @click.stop>
-        <img :src="qrCode" alt="QR Code" />
+      <!-- QR + CODE -->
+      <div class="qr" v-if="qrCode">
+        <img :src="qrCode" />
         <span class="qr-label">Scanner pour rejoindre</span>
-      </div>
 
-      <!-- LISTE DES JOUEURS -->
-      <div class="liste-joueurs">
-        <div
-          v-for="joueur in joueurs"
-          :key="joueur.id"
-          class="carte carte-joueur"
-        >
-          <!-- IDENTITÉ -->
-          <div class="identite">
-            <div class="avatar">
-              {{ joueur.pseudo.charAt(0).toUpperCase() }}
-            </div>
-            <span class="nom-joueur">{{ joueur.pseudo }}</span>
-          </div>
-
-          <!-- ÉQUIPEMENTS -->
-          <div class="equipements">
-            <span class="equipement" :class="{ ok: joueur.pret }">🔫</span>
-            <span class="equipement" :class="{ ok: joueur.pret }">🦺</span>
-          </div>
-
-          <!-- STATUT -->
-          <div class="statut" :class="joueur.pret ? 'pret' : 'attente'">
-            {{ joueur.pret ? "Prêt" : "En attente" }}
+        <div class="code-partie">
+          <span class="label">Code de la partie</span>
+          <div class="code-box" @click="copierCode">
+            {{ codePartie }}
+            <span class="copy"></span>
           </div>
         </div>
       </div>
 
-      <!-- ACTION -->
-      <button
-        class="bouton-lancer"
-        :disabled="!tousPrets"
-        @click="lancerPartie"
-      >
+      <!-- JOUEURS -->
+      <div class="liste-joueurs">
+        <div v-for="j in joueurs" :key="j.id" class="carte carte-joueur">
+          <div class="identite">
+            <div class="avatar">{{ j.pseudo[0].toUpperCase() }}</div>
+            <span class="nom-joueur">{{ j.pseudo }}</span>
+          </div>
+
+          <div class="equipements">
+            <span class="equipement" :class="{ ok: j.pret }">🔫</span>
+            <span class="equipement" :class="{ ok: j.pret }">🦺</span>
+          </div>
+
+          <div class="statut" :class="j.pret ? 'pret' : 'attente'">
+            {{ j.pret ? "Prêt" : "En attente" }}
+          </div>
+        </div>
+      </div>
+
+      <button class="bouton-lancer" :disabled="!tousPrets" @click="lancerPartie">
         Lancer la partie
       </button>
 
     </div>
   </div>
 </template>
+
+
+
 
 <script>
 import axios from "axios";
@@ -66,9 +62,7 @@ export default {
 
   data() {
     return {
-      partie: {
-        nom: "File d’attente",
-      },
+      partie: { nom: "File d’attente" },
       joueurs: [],
       qrCode: null,
       pollingId: null,
@@ -85,87 +79,57 @@ export default {
     },
 
     tousPrets() {
-      return this.joueurs.length > 0 &&
-             this.joueurs.every(j => j.pret);
+      return this.joueurs.length > 0 && this.joueurs.every(j => j.pret);
     },
   },
 
   async mounted() {
-    if (!this.codePartie) {
-      console.error("❌ Code de partie manquant dans l’URL");
-      return;
-    }
+    if (!this.codePartie) return;
 
-    // 🔹 QR code (comme ListeParties)
     this.qrCode = await QRCode.toDataURL(this.codePartie, {
-      width: 140,
-      margin: 1,
+      width: 160,
+      margin: 0, // 🔥 pas d’espace blanc
     });
 
-    // 🔹 Chargement initial complet
     await this.chargerJoueurs();
-
-    // 🔁 Polling COMPLET joueurs
     this.pollingId = setInterval(this.chargerJoueurs, 2000);
   },
 
   beforeUnmount() {
-    if (this.pollingId) {
-      clearInterval(this.pollingId);
-      this.pollingId = null;
-    }
+    if (this.pollingId) clearInterval(this.pollingId);
   },
 
   methods: {
     async chargerJoueurs() {
-      try {
-        const response = await axios.get(
-          `/api/games/${this.codePartie}/players/`
-        );
+      const res = await axios.get(
+        `/api/games/${this.codePartie}/players/`
+      );
 
-        this.joueurs = response.data.map(player => ({
-          id: player.id,
-          pseudo: player.pseudo,
-          pret: player.equipment_id !== null,
-        }));
-      } catch (error) {
-        console.error(
-          "Erreur chargement joueurs :",
-          error.response?.data || error
-        );
-      }
-    },
-
-    async pollingEtatEquipements() {
-      try {
-        const response = await axios.get(
-          `/api/games/${this.codePartie}/players/`
-        );
-
-        response.data.forEach(bp => {
-          const local = this.joueurs.find(j => j.id === bp.id);
-          if (local) {
-            local.pret = bp.equipment_id !== null;
-          }
-        });
-      } catch (error) {
-        console.error("Erreur polling équipements :", error);
-      }
+      this.joueurs = res.data.map(p => ({
+        id: p.id,
+        pseudo: p.pseudo,
+        pret: p.equipment_id !== null,
+      }));
     },
 
     async lancerPartie() {
-      if (!this.tousPrets) return;
-
       await axios.post(`/api/games/${this.codePartie}/start/`);
-
       this.$router.push({
         name: "PartieEnCours",
         params: { code: this.codePartie },
       });
     },
+
+    copierCode() {
+      navigator.clipboard.writeText(this.codePartie);
+    },
   },
 };
 </script>
+
+
+
+
 
 <style>
 .page-file-attente {
@@ -199,8 +163,24 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
+
+/* carré blanc propre */
+.qr-wrapper {
+  background: white;
+  padding: 6px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+
+.qr-wrapper img {
+  width: 150px;
+  height: 150px;
+  display: block;
+  border-radius: 8px;
+}
+
 
 .qr img {
   width: 130px;
@@ -214,7 +194,6 @@ export default {
   font-size: 12px;
   font-weight: 600;
   opacity: 0.9;
-  text-align: center;
 }
 
 /* LISTE JOUEURS */
@@ -301,5 +280,46 @@ export default {
 .bouton-lancer:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+/* ===== CODE PARTIE ===== */
+
+.code-partie {
+  margin-top: 6px;
+  padding: 10px 18px;
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.code-partie:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: scale(1.04);
+}
+
+.code-label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  opacity: 0.65;
+  text-transform: uppercase;
+}
+
+.code-value {
+  font-family: monospace;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 2px;
+
+  background: var(--degrade-brio);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 </style>
